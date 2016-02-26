@@ -11,16 +11,18 @@
 using namespace std;
 
 enum class ConvolutionType { Test, SobelX, SobelY };
+enum class NormingType { Dummy, Border, Mirror };
 
 class Convolution {
 private:
     size_t coreWidth, coreHeight;
     unique_ptr<double[]> core;
+    NormingType normingType;
     double calculatePixel(const unique_ptr<double[]> &image, int x, int y, size_t width, size_t height);
 public:
-    Convolution(ConvolutionType type);
+    Convolution(ConvolutionType convolutionType, NormingType normingType);
     unique_ptr<double []> calculate(const unique_ptr<double []> &inImage, size_t width, size_t height);
-    int getIndex(int index, size_t width);
+    int getIndex(int index, int width);
 };
 
 

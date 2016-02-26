@@ -16,8 +16,8 @@ int main()
     qDebug() << "image width: " << width << " image height: " << height;
 
     auto image = BlackWhiteConverter().convert(qImage, width, height);
-    auto image1 = Convolution(ConvolutionType::Test).calculate(image, width, height);
-    auto output = Convolution(ConvolutionType::SobelY).calculate(image1, width, height);
+    auto image1 = Convolution(ConvolutionType::Test, NormingType::Dummy).calculate(image, width, height);
+    auto output = Convolution(ConvolutionType::SobelY, NormingType::Dummy).calculate(image1, width, height);
 
     for (int i = 0; i < width; ++i) {
         for (int j = 0; j < height; ++j) {

@@ -7,8 +7,9 @@
 
 using namespace std;
 
-Convolution::Convolution(ConvolutionType type) {
-    switch (type) {
+Convolution::Convolution(ConvolutionType convolutionType, NormingType normingType_) {
+    normingType = normingType_;
+    switch (convolutionType) {
         case ConvolutionType::Test: {
             coreWidth = 3;
             coreHeight = 3;
@@ -57,8 +58,18 @@ double Convolution::calculatePixel(const unique_ptr<double[]> &image, int x, int
     return result;
 }
 
-int Convolution::getIndex(int index, size_t width) {
-    index = abs(index);
-    if (index >= width) index = 2 * width - index - 1;
-    return index;
+int Convolution::getIndex(int index, int width) {
+    switch (normingType) {
+        case NormingType::Dummy: {
+            return index < 0 || index >= width ? 0 : index;
+        }
+        case NormingType::Border: {
+            return min(max(index, 0),width - 1);
+        }
+        case NormingType::Mirror: {
+            index = abs(index);
+            return index >= width ? width * 2 - index - 2 : index;
+        }
+    }
+
 }
