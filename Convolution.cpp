@@ -55,7 +55,7 @@ double Convolution::calculatePixel(const unique_ptr<double[]> &image, int x, int
                             + getIndex(x + coreX - coreWidth / 2, width)] * core[(coreY * coreWidth) + coreX];
         }
     }
-    return result;
+    return min(max(result, 0.), 1.);
 }
 
 int Convolution::getIndex(int index, int width) {
