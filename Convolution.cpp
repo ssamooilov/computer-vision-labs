@@ -7,69 +7,72 @@
 
 using namespace std;
 
-Convolution::Convolution(ConvolutionType convolutionType, NormingType normingType_) {
-    normingType = normingType_;
+Convolution::Convolution(ConvolutionType convolutionType, NormingType normingType) {
+    this->normingType = normingType;
     switch (convolutionType) {
         case ConvolutionType::Test: {
-            coreWidth = 3;
-            coreHeight = 3;
-            core = make_unique<double []>(coreWidth * coreHeight);
-            core[0] = 1./9; core[1] = 1./9; core[2] = 1./9;
-            core[3] = 1./9; core[4] = 1./9; core[5] = 1./9;
-            core[6] = 1./9; core[7] = 1./9; core[8] = 1./9;
+            kernelWidth = 3;
+            kernelHeight = 3;
+            kernel = make_unique<double []>(kernelWidth * kernelHeight);
+            kernel[0] = 1. / 9; kernel[1] = 1. / 9; kernel[2] = 1. / 9;
+            kernel[3] = 1. / 9; kernel[4] = 1. / 9; kernel[5] = 1. / 9;
+            kernel[6] = 1. / 9; kernel[7] = 1. / 9; kernel[8] = 1. / 9;
         } break;
         case ConvolutionType::SobelX: {
-            coreWidth = 3;
-            coreHeight = 3;
-            core = make_unique<double []>(coreWidth * coreHeight);
-            core[0] = 1; core[1] = 0; core[2] = -1;
-            core[3] = 2; core[4] = 0; core[5] = -2;
-            core[6] = 1; core[7] = 0; core[8] = -1;
+            kernelWidth = 3;
+            kernelHeight = 3;
+            kernel = make_unique<double []>(kernelWidth * kernelHeight);
+            kernel[0] = 1; kernel[1] = 0; kernel[2] = -1;
+            kernel[3] = 2; kernel[4] = 0; kernel[5] = -2;
+            kernel[6] = 1; kernel[7] = 0; kernel[8] = -1;
         } break;
         case ConvolutionType::SobelY: {
-            coreWidth = 3;
-            coreHeight = 3;
-            core = make_unique<double []>(coreWidth * coreHeight);
-            core[0] = 1; core[1] = 2; core[2] = 1;
-            core[3] = 0; core[4] = 0; core[5] = 0;
-            core[6] = -1; core[7] = -2; core[8] = -1;
+            kernelWidth = 3;
+            kernelHeight = 3;
+            kernel = make_unique<double []>(kernelWidth * kernelHeight);
+            kernel[0] = 1; kernel[1] = 2; kernel[2] = 1;
+            kernel[3] = 0; kernel[4] = 0; kernel[5] = 0;
+            kernel[6] = -1; kernel[7] = -2; kernel[8] = -1;
         } break;
     }
 }
 
-unique_ptr<double[]> Convolution::calculate(const unique_ptr<double[]> &inImage, size_t width, size_t height) {
-    auto outImage = make_unique<double []>(width * height);
-    for (int x = 0; x < width; ++x) {
-        for (int y = 0; y < height; ++y) {
-            outImage[(y * width) + x] = calculatePixel(inImage, x, y, width, height);
+unique_ptr<Image> Convolution::calculate(const Image *image) const {
+    unique_ptr<Image> result = make_unique<Image>(image->getWidth(), image->getHeight());
+    for (int i = 0; i < image->getHeight(); ++i) {
+        for (int j = 0; j < image->getWidth(); ++j) {
+            result->set(j, i, calculatePixel(image, j, i));
         }
     }
-    return outImage;
+    return result;
 }
 
-double Convolution::calculatePixel(const unique_ptr<double[]> &image, int x, int y, size_t width, size_t height) {
+double Convolution::calculatePixel(const Image *image, int x, int y) const {
     double result = 0;
-    for (int coreX = 0; coreX < coreWidth; ++coreX) {
-        for (int coreY = 0; coreY < coreHeight; ++coreY) {
-            result += image[(getIndex(y + coreY - coreHeight / 2, height) * width)
-                            + getIndex(x + coreX - coreWidth / 2, width)] * core[(coreY * coreWidth) + coreX];
+    for (int kernelY = 0; kernelY < kernelHeight; ++kernelY) {
+        for (int kernelX = 0; kernelX < kernelWidth; ++kernelX) {
+            result += image->get(calculateIndex(x + kernelX - kernelWidth / 2, image->getWidth()),
+                                 calculateIndex(y + kernelY - kernelHeight / 2, image->getHeight()))
+                                 * kernel[(kernelY * kernelWidth) + kernelX];
         }
     }
-    return min(max(result, 0.), 1.);
+    return result;
 }
 
-int Convolution::getIndex(int index, int width) {
+int Convolution::calculateIndex(int index, int size) const {
     switch (normingType) {
         case NormingType::Dummy: {
-            return index < 0 || index >= width ? 0 : index;
+            return index < 0 || index >= size ? 0 : index;
         }
         case NormingType::Border: {
-            return min(max(index, 0),width - 1);
+            return min(max(index, 0), size - 1);
         }
         case NormingType::Mirror: {
             index = abs(index);
-            return index >= width ? width * 2 - index - 2 : index;
+            return index >= size ? size * 2 - index - 2 : index;
+        }
+        case NormingType::Cylinder: {
+            return (index + size) % size;
         }
     }
-
 }

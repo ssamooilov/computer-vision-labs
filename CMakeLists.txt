@@ -9,7 +9,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(Qt5Widgets)
 
-set(SOURCE_FILES main.cpp Convolution.cpp Convolution.h BlackWhiteConverter.cpp BlackWhiteConverter.h)
+set(SOURCE_FILES main.cpp Convolution.cpp Convolution.h Image.cpp Image.h)
 add_executable(cvlab1 ${SOURCE_FILES})
 
 target_link_libraries(cvlab1 Qt5::Widgets)

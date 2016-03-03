@@ -5,24 +5,24 @@
 #ifndef CVLAB1_CONVOLUTION_H
 #define CVLAB1_CONVOLUTION_H
 
-#include <QDebug>
 #include <memory>
+#include "Image.h"
 
 using namespace std;
 
 enum class ConvolutionType { Test, SobelX, SobelY };
-enum class NormingType { Dummy, Border, Mirror };
+enum class NormingType { Dummy, Border, Mirror, Cylinder };
 
 class Convolution {
 private:
-    size_t coreWidth, coreHeight;
-    unique_ptr<double[]> core;
+    size_t kernelWidth, kernelHeight;
+    unique_ptr<double[]> kernel;
     NormingType normingType;
-    double calculatePixel(const unique_ptr<double[]> &image, int x, int y, size_t width, size_t height);
+    double calculatePixel(const Image *image, int x, int y) const;
+    int calculateIndex(int index, int size) const;
 public:
     Convolution(ConvolutionType convolutionType, NormingType normingType);
-    unique_ptr<double []> calculate(const unique_ptr<double []> &inImage, size_t width, size_t height);
-    int getIndex(int index, int width);
+    unique_ptr<Image> calculate(const Image *image) const;
 };
 
 
