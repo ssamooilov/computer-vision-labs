@@ -18,12 +18,14 @@ int main()
         }
     }
 
-    image = Convolution(ConvolutionType::Test, NormingType::Mirror).calculate(image.get());
-    image = Convolution(ConvolutionType::SobelX, NormingType::Mirror).calculate(image.get());
+    auto sobelX = Convolution(ConvolutionType::SobelX, NormingType::Mirror).calculate(*image);
+    auto sobelY = Convolution(ConvolutionType::SobelY, NormingType::Mirror).calculate(*image);
+    image = sobelX->calculateHypotenuse(*sobelY);
+    image = image->normalize();
 
     for (int i = 0; i < image->getHeight(); ++i) {
         for (int j = 0; j < image->getWidth(); ++j) {
-            int color = (int) (min(1., max(0., image->get(j, i))) * 255.);
+            int color = (int) (image->get(j, i) * 255.);
             qImage.setPixel(j, i, qRgb(color, color, color));
         }
     }

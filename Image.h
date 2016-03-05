@@ -6,12 +6,14 @@
 #define CVLAB1_IMAGE_H
 
 #include <memory>
+#include <algorithm>
+#include <math.h>
 
 using namespace std;
 
 class Image {
 private:
-    int width, height;
+    const int width, height;
     unique_ptr<double[]> data;
 public:
     Image(const int width, const int height);
@@ -20,6 +22,8 @@ public:
     void set(const int x, const int y, const int red, const int green, const int blue);
     int getWidth() const;
     int getHeight() const;
+    unique_ptr<Image> calculateHypotenuse(const Image &image) const;
+    unique_ptr<Image> normalize() const;
 };
 
 

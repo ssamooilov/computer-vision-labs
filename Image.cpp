@@ -4,9 +4,7 @@
 
 #include "Image.h"
 
-Image::Image(const int width, const int height) {
-    this->width = width;
-    this->height = height;
+Image::Image(const int width, const int height) : width(width), height(height) {
     data = make_unique<double []>((size_t) (width * height));
 }
 
@@ -28,4 +26,24 @@ int Image::getWidth() const {
 
 int Image::getHeight() const {
     return height;
+}
+
+unique_ptr<Image> Image::calculateHypotenuse(const Image &image) const {
+    auto result = make_unique<Image>(width, height);
+    for (int i = 0; i < width * height; ++i) {
+        result->data[i] = sqrt(data[i] * data[i] + image.data[i] * image.data[i]);
+    }
+    return result;
+}
+
+unique_ptr<Image> Image::normalize() const {
+    auto result = make_unique<Image>(width, height);
+    double minValue = *min_element(&data[0], &data[width * height]);
+    double maxValue = *max_element(&data[0], &data[width * height]);
+    double range = maxValue - minValue;
+    range = range == 0 ? 1 : range;
+    for (int i = 0; i < width * height; ++i) {
+        result->data[i] = (data[i] - minValue) / range;
+    }
+    return result;
 }

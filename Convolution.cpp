@@ -14,46 +14,56 @@ Convolution::Convolution(ConvolutionType convolutionType, NormingType normingTyp
             kernelWidth = 3;
             kernelHeight = 3;
             kernel = make_unique<double []>(kernelWidth * kernelHeight);
-            kernel[0] = 1. / 9; kernel[1] = 1. / 9; kernel[2] = 1. / 9;
-            kernel[3] = 1. / 9; kernel[4] = 1. / 9; kernel[5] = 1. / 9;
-            kernel[6] = 1. / 9; kernel[7] = 1. / 9; kernel[8] = 1. / 9;
+            double kernelArray[9] = {
+                    1. / 9, 1. / 9, 1. / 9,
+                    1. / 9, 1. / 9, 1. / 9,
+                    1. / 9, 1. / 9, 1. / 9
+            };
+            copy(begin(kernelArray), end(kernelArray), kernel.get());
         } break;
         case ConvolutionType::SobelX: {
             kernelWidth = 3;
             kernelHeight = 3;
             kernel = make_unique<double []>(kernelWidth * kernelHeight);
-            kernel[0] = 1; kernel[1] = 0; kernel[2] = -1;
-            kernel[3] = 2; kernel[4] = 0; kernel[5] = -2;
-            kernel[6] = 1; kernel[7] = 0; kernel[8] = -1;
+            double kernelArray[9] = {
+                    -1, 0, 1,
+                    -2, 0, 2,
+                    -1, 0, 1
+            };
+            copy(begin(kernelArray), end(kernelArray), kernel.get());
         } break;
         case ConvolutionType::SobelY: {
             kernelWidth = 3;
             kernelHeight = 3;
             kernel = make_unique<double []>(kernelWidth * kernelHeight);
-            kernel[0] = 1; kernel[1] = 2; kernel[2] = 1;
-            kernel[3] = 0; kernel[4] = 0; kernel[5] = 0;
-            kernel[6] = -1; kernel[7] = -2; kernel[8] = -1;
+            double kernelArray[9] = {
+                    -1, -2, -1,
+                    0, 0, 0,
+                    1, 2, 1
+            };
+            copy(begin(kernelArray), end(kernelArray), kernel.get());
         } break;
     }
 }
 
-unique_ptr<Image> Convolution::calculate(const Image *image) const {
-    unique_ptr<Image> result = make_unique<Image>(image->getWidth(), image->getHeight());
-    for (int i = 0; i < image->getHeight(); ++i) {
-        for (int j = 0; j < image->getWidth(); ++j) {
-            result->set(j, i, calculatePixel(image, j, i));
+unique_ptr<Image> Convolution::calculate(const Image &image) const {
+    auto result = make_unique<Image>(image.getWidth(), image.getHeight());
+    for (int i = 0; i < image.getHeight(); ++i) {
+        for (int j = 0; j < image.getWidth(); ++j) {
+            result->set(j, i, calculateCell(image, j, i));
         }
     }
     return result;
 }
 
-double Convolution::calculatePixel(const Image *image, int x, int y) const {
+double Convolution::calculateCell(const Image &image, int x, int y) const {
     double result = 0;
     for (int kernelY = 0; kernelY < kernelHeight; ++kernelY) {
         for (int kernelX = 0; kernelX < kernelWidth; ++kernelX) {
-            result += image->get(calculateIndex(x + kernelX - kernelWidth / 2, image->getWidth()),
-                                 calculateIndex(y + kernelY - kernelHeight / 2, image->getHeight()))
-                                 * kernel[(kernelY * kernelWidth) + kernelX];
+            int indexX = calculateIndex(x - kernelX + kernelWidth / 2, image.getWidth());
+            int indexY = calculateIndex(y - kernelY + kernelHeight / 2, image.getHeight());
+            double value = indexX == -1 || indexY == -1 ? 0 : image.get(indexX, indexY);
+            result += value * kernel[(kernelY * kernelWidth) + kernelX];
         }
     }
     return result;
@@ -62,7 +72,7 @@ double Convolution::calculatePixel(const Image *image, int x, int y) const {
 int Convolution::calculateIndex(int index, int size) const {
     switch (normingType) {
         case NormingType::Dummy: {
-            return index < 0 || index >= size ? 0 : index;
+            return index < 0 || index >= size ? -1 : index;
         }
         case NormingType::Border: {
             return min(max(index, 0), size - 1);
