@@ -47,3 +47,50 @@ unique_ptr<Image> Image::normalize() const {
     }
     return result;
 }
+
+unique_ptr<Image> Image::convolution(const Kernel &kernel, NormingType normingType) const {
+    auto result = make_unique<Image>(width, height);
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            result->set(j, i, _convolutionCell(j, i, kernel, normingType));
+        }
+    }
+    return result;
+}
+
+double Image::_convolutionCell(int x, int y, const Kernel &kernel, NormingType normingType) const {
+    double result = 0;
+    for (int kernelY = 0; kernelY < kernel.height; ++kernelY) {
+        for (int kernelX = 0; kernelX < kernel.width; ++kernelX) {
+            int indexX = _convolutionIndex(x - kernelX + kernel.width / 2, width, normingType);
+            int indexY = _convolutionIndex(y - kernelY + kernel.height / 2, height, normingType);
+            double value = indexX == -1 || indexY == -1 ? 0 : get(indexX, indexY);
+            result += value * kernel.data[(kernelY * kernel.width) + kernelX];
+        }
+    }
+    return result;
+}
+
+int Image::_convolutionIndex(int index, int size, NormingType normingType) const {
+    switch (normingType) {
+        case NormingType::Dummy: {
+            return index < 0 || index >= size ? -1 : index;
+        }
+        case NormingType::Border: {
+            return min(max(index, 0), size - 1);
+        }
+        case NormingType::Mirror: {
+            index = abs(index);
+            return index >= size ? size * 2 - index - 2 : index;
+        }
+        case NormingType::Cylinder: {
+            return (index + size) % size;
+        }
+    }
+}
+
+
+
+
+
+

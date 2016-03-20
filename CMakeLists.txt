@@ -9,7 +9,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(Qt5Widgets)
 
-set(SOURCE_FILES main.cpp Convolution.cpp Convolution.h Image.cpp Image.h)
+set(SOURCE_FILES main.cpp Image.cpp Image.h KernelFactory.cpp KernelFactory.h)
 add_executable(cvlab1 ${SOURCE_FILES})
 
 target_link_libraries(cvlab1 Qt5::Widgets)
