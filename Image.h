@@ -30,6 +30,7 @@ public:
     unique_ptr<Image> calculateHypotenuse(const Image &image) const;
     unique_ptr<Image> normalize() const;
     unique_ptr<Image> convolution(const Kernel &kernel, NormingType normingType) const;
+    unique_ptr<Image> scale() const;
 };
 
 

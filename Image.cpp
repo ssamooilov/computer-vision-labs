@@ -89,8 +89,10 @@ int Image::_convolutionIndex(int index, int size, NormingType normingType) const
     }
 }
 
-
-
-
-
-
+unique_ptr<Image> Image::scale() const {
+    auto result = make_unique<Image>(width / 2, height / 2);
+    for (int i = 0; i < result->getHeight(); ++i)
+        for (int j = 0; j < result->getWidth(); ++j)
+            result->set(i, j, (get(i*2, j*2) + get(i*2+1, j*2) + get(i*2, j*2+1) + get(i*2+1, j*2+1)) / 4);
+    return result;
+}
