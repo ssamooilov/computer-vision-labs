@@ -19,12 +19,18 @@ Pyramid::Pyramid(const Image &image) {
     layer = layer->convolution(*KernelFactory::buildGaussY(base_sigma), NormingType::Mirror);
     layers.push_back(*layer);
 
+    double old_sigma = zero_sigma, new_sigma;
     for (int i = 1; i < octaves_count * layers_per_octave; ++i) {
         sigmas[i] = sigmas[i-1] * k;
-        double delta_sigma = sqrt(sigmas[i]*sigmas[i] - sigmas[i-1]*sigmas[i-1]);
+        new_sigma = old_sigma * k;
+        double delta_sigma = sqrt(new_sigma*new_sigma - old_sigma*old_sigma);
         layer = layer->convolution(*KernelFactory::buildGaussX(delta_sigma), NormingType::Mirror);
         layer = layer->convolution(*KernelFactory::buildGaussY(delta_sigma), NormingType::Mirror);
-        if (i % octaves_count == 0) layer = layer->scale();
+        old_sigma = new_sigma;
+        if (i % octaves_count == 0) {
+            layer = layer->scale();
+            old_sigma /= 2;
+        }
         layers.push_back(*layer);
     }
 }
