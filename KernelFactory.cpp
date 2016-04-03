@@ -40,7 +40,7 @@ unique_ptr<Kernel> KernelFactory::buildGaussX(double sigma) {
     kernel->height = 1;
     kernel->data = make_unique<double []>(kernel->width);
     for (int i = -size; i <= size; ++i)
-        kernel->data[i+size] = exp(-i*i/(2*sigma*sigma)) / sqrt(2 * M_PI * sigma * sigma);
+        kernel->data[i+size] = exp(-i*i/(2*sigma*sigma)) / (sqrt(2 * M_PI) * sigma);
     return kernel;
 }
 

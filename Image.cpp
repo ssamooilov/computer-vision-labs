@@ -8,8 +8,21 @@ Image::Image(const int width, const int height) : width(width), height(height) {
     data = make_unique<double []>((size_t) (width * height));
 }
 
+Image::Image(const Image &image) : width(image.getWidth()), height(image.getHeight()) {
+    data = make_unique<double []>((size_t) (width * height));
+    for (int i = 0; i < width * height; ++i)
+        data[i] = image.data[i];
+}
+
 double Image::get(const int x, const int y) const {
     return data[(y * width) + x];
+}
+
+double Image::get(const int x, const int y, const int begin_sigma, int sigma) const {
+    int layer = 0;
+    while (sigma > begin_sigma)
+        sigma /= 2;
+    return data[(y / (2*layer) * width) + x / (2*layer)];;
 }
 
 void Image::set(const int x, const int y, const double value) {

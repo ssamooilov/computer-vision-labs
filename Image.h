@@ -22,7 +22,9 @@ private:
     int _convolutionIndex(int index, int size, NormingType normingType) const;
 public:
     Image(const int width, const int height);
+    Image(const Image &image);
     double get(const int x, const int y) const;
+    double get(const int x, const int y, const int begin_sigma, int sigma) const;
     void set(const int x, const int y, const double value);
     void set(const int x, const int y, const int red, const int green, const int blue);
     int getWidth() const;
