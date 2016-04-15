@@ -17,7 +17,7 @@ Pyramid::Pyramid(const Image &image) {
     double base_sigma = sqrt(zero_sigma*zero_sigma - begin_sigma*begin_sigma);
     auto layer = image.convolution(*KernelFactory::buildGaussX(base_sigma), NormingType::Mirror);
     layer = layer->convolution(*KernelFactory::buildGaussY(base_sigma), NormingType::Mirror);
-    layers.push_back(*layer);
+    layers.push_back(move(*layer));
 
     double old_sigma = zero_sigma, new_sigma;
     for (int i = 1; i < octaves_count * layers_per_octave; ++i) {
@@ -31,6 +31,6 @@ Pyramid::Pyramid(const Image &image) {
             layer = layer->scale();
             old_sigma /= 2;
         }
-        layers.push_back(*layer);
+        layers.push_back(move(*layer));
     }
 }

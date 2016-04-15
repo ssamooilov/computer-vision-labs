@@ -23,6 +23,7 @@ private:
 public:
     Image(const int width, const int height);
     Image(const Image &image);
+    Image(const Image &&image);
     double get(const int x, const int y) const;
     double get(const int x, const int y, const int begin_sigma, int sigma) const;
     void set(const int x, const int y, const double value);

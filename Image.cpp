@@ -14,6 +14,11 @@ Image::Image(const Image &image) : width(image.getWidth()), height(image.getHeig
         data[i] = image.data[i];
 }
 
+Image::Image(const Image &&image) : width(image.getWidth()), height(image.getHeight()) {
+    data = move(image.data);
+    image.data = nullptr;
+}
+
 double Image::get(const int x, const int y) const {
     return data[(y * width) + x];
 }
