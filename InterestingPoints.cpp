@@ -12,7 +12,7 @@ InterestingPointsSearcher::InterestingPointsSearcher(const Image &image, Interes
             moravek(borderType);
             break;
         case InterestingPointsMethod::Harris:
-            harris();
+            harris(borderType);
             break;
     }
 }
@@ -38,11 +38,34 @@ void InterestingPointsSearcher::moravek(BorderType borderType) {
             contrast.set(x, y, minValue);
         }
     }
+    extractInterestingPoints(contrast, MORAVEK_THRESHOLD, borderType);
+}
+
+void InterestingPointsSearcher::harris(BorderType borderType) {
+    auto contrast = Image(image.getWidth(), image.getHeight());
+    auto sobelX = image.convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
+    auto sobelY = image.convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
+    for (int y = 0; y < image.getHeight(); ++y) {
+        for (int x = 0; x < image.getWidth(); ++x) {
+            double a = sobelX->get(x, y) * sobelX->get(x, y);
+            double b = sobelX->get(x, y) * sobelY->get(x, y);
+            double c = sobelY->get(x, y) * sobelY->get(x, y);
+            double d = sqrt((a-c) * (a-c) + 4*b*b);
+            double lambda1 = (a + c - d) / 2;
+            double lambda2 = (a + c + d) / 2;
+            contrast.set(x, y, min(abs(lambda1), abs(lambda2)));
+        }
+    }
+    extractInterestingPoints(contrast, HARRIS_THRESHOLD, borderType);
+}
+
+void InterestingPointsSearcher::extractInterestingPoints(Image &contrast, double threshold, BorderType borderType) {
+    points.clear();
     for (int y = 0; y < contrast.getHeight(); ++y) {
         for (int x = 0; x < contrast.getWidth(); ++x) {
-            if (contrast.get(x, y) < THRESHOLD) continue;
-            for (int dy = -LOCAL_SHIFT; dy < LOCAL_SHIFT; ++dy) {
-                for (int dx = -LOCAL_SHIFT; dx < LOCAL_SHIFT; ++dx) {
+            if (contrast.get(x, y) < threshold) continue;
+            for (int dy = -EXTRACT_SHIFT; dy < EXTRACT_SHIFT; ++dy) {
+                for (int dx = -EXTRACT_SHIFT; dx < EXTRACT_SHIFT; ++dx) {
                     if (dx == 0 && dy == 0) continue;
                     if (contrast.get(x+dx, y+dy, borderType) >= contrast.get(x, y)) goto end;
                 }
@@ -51,13 +74,6 @@ void InterestingPointsSearcher::moravek(BorderType borderType) {
             end:;
         }
     }
-    qDebug() << "count: " << points.size();
-}
-
-void InterestingPointsSearcher::harris() {
-    auto sobelX = image.convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
-    auto sobelY = image.convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
-
 }
 
 void InterestingPointsSearcher::output(QString fileName) const {

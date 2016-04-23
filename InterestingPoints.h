@@ -19,15 +19,17 @@ struct InterestingPoint {
 
 class InterestingPointsSearcher {
 private:
-    const int WINDOW_SHIFT = 2, LOCAL_SHIFT = 2, POINT_SHIFT = 2;
-    const double THRESHOLD = 0.01;
+    const int WINDOW_SHIFT = 2, EXTRACT_SHIFT = 2, POINT_SHIFT = 2;
+    const double MORAVEK_THRESHOLD = 0.01, HARRIS_THRESHOLD = 1e-17;
     Image image;
     vector<InterestingPoint> points;
 public:
     InterestingPointsSearcher(const Image &image, InterestingPointsMethod method, BorderType borderType);
     void moravek(BorderType borderType);
-    void harris();
+    void harris(BorderType borderType);
     void output(QString fileName) const;
+
+    void extractInterestingPoints(Image &contrast, double threshold, BorderType borderType);
 };
 
 

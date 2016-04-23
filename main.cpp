@@ -53,6 +53,8 @@ void lab2(const Image &image) {
 void lab3(Image &image) {
     auto searcher = new InterestingPointsSearcher(image, InterestingPointsMethod::Moravek, BorderType::Mirror);
     searcher->output("moravek.png");
+    searcher = new InterestingPointsSearcher(image, InterestingPointsMethod::Harris, BorderType::Mirror);
+    searcher->output("harris.png");
 }
 
 //void output(const Image &image, QString fileName) {
