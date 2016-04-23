@@ -101,27 +101,14 @@ void InterestingPointsSearcher::output(QString fileName) const {
 
 void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoints) {
     for (int r = 0; r < image.getWidth() + image.getHeight() && points.size() > countPoints; ++r) {
-        for (int i = 0; i < points.size(); ++i) {
-            for (int j = i+1; j < points.size(); ++j) {
-                if (sqrt((points[i].x - points[j].x) * (points[i].x - points[j].x)
-                             + (points[i].y - points[j].y) * (points[i].y - points[j].y)) <= r
-                        && FILTER_FACTOR * points[i].weight < points[j].weight) {
-                    points.erase(points.begin() + i);
-                    i--;
+        for (auto i = points.begin(); i != points.end(); ++i) {
+            for (auto j = i + 1; j != points.end(); ++j) {
+                if (sqrt(((*i).x - (*j).x) * ((*i).x - (*j).x) + ((*i).y - (*j).y) * ((*i).y - (*j).y)) <= r
+                    && FILTER_FACTOR * (*i).weight < (*j).weight) {
+                    points.erase(i);
                     break;
                 }
             }
         }
-
-//        for (auto i = points.begin(); i != points.end(); ++i) {
-//            for (auto j = i + 1; j != points.end(); ++j) {
-//                if (sqrt(((*i).x - (*j).x) * ((*i).x - (*j).x) + ((*i).y - (*j).y) * ((*i).y - (*j).y)) <= r
-//                    && FILTER_FACTOR * (*i).weight < (*j).weight) {
-//                    i++;
-//                    points.erase(i-1);
-//                    break;
-//                }
-//            }
-//        }
     }
 }
