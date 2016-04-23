@@ -4,8 +4,7 @@
 
 #include "Image.h"
 
-Image::Image() : width(0), height(0), data(nullptr) {
-}
+Image::Image() : width(0), height(0), data(nullptr) {}
 
 Image::Image(const int width, const int height) : width(width), height(height) {
     data = make_unique<double []>((size_t) (width * height));
@@ -37,6 +36,15 @@ Image::operator bool() const noexcept {
 
 double Image::get(const int x, const int y) const {
     return data[(y * width) + x];
+}
+
+double Image::get(const int x, const int y, const BorderType borderType) const {
+    switch (borderType) {
+        case BorderType::Dummy: return x < 0 || x >= width || y < 0 || y >= height ? 0 : get(x, y);
+        case BorderType::Border: return get(min(max(x, 0), width - 1), min(max(y, 0), height - 1));
+        case BorderType::Mirror: return get(x >= width ? 2*width - x - 2 : abs(x), y >= height ? 2*height - y - 2 : abs(y));
+        case BorderType::Cylinder: return get((x + width) % width, (y + height) % height);
+    }
 }
 
 double Image::get(const int x, const int y, const int begin_sigma, int sigma) const {
@@ -82,7 +90,7 @@ unique_ptr<Image> Image::normalize() const {
     return result;
 }
 
-unique_ptr<Image> Image::convolution(const Kernel &kernel, NormingType normingType) const {
+unique_ptr<Image> Image::convolution(const Kernel &kernel, BorderType normingType) const {
     auto result = make_unique<Image>(width, height);
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
@@ -92,35 +100,15 @@ unique_ptr<Image> Image::convolution(const Kernel &kernel, NormingType normingTy
     return result;
 }
 
-double Image::_convolutionCell(int x, int y, const Kernel &kernel, NormingType normingType) const {
+double Image::_convolutionCell(int x, int y, const Kernel &kernel, BorderType borderType) const {
     double result = 0;
     for (int kernelY = 0; kernelY < kernel.height; ++kernelY) {
         for (int kernelX = 0; kernelX < kernel.width; ++kernelX) {
-            int indexX = _convolutionIndex(x - kernelX + kernel.width / 2, width, normingType);
-            int indexY = _convolutionIndex(y - kernelY + kernel.height / 2, height, normingType);
-            double value = indexX == -1 || indexY == -1 ? 0 : get(indexX, indexY);
-            result += value * kernel.data[(kernelY * kernel.width) + kernelX];
+            result += get(x - kernelX + kernel.width / 2, y - kernelY + kernel.height / 2, borderType)
+                      * kernel.data[(kernelY * kernel.width) + kernelX];
         }
     }
     return result;
-}
-
-int Image::_convolutionIndex(int index, int size, NormingType normingType) const {
-    switch (normingType) {
-        case NormingType::Dummy: {
-            return index < 0 || index >= size ? -1 : index;
-        }
-        case NormingType::Border: {
-            return min(max(index, 0), size - 1);
-        }
-        case NormingType::Mirror: {
-            index = abs(index);
-            return index >= size ? size * 2 - index - 2 : index;
-        }
-        case NormingType::Cylinder: {
-            return (index + size) % size;
-        }
-    }
 }
 
 unique_ptr<Image> Image::scale() const {
@@ -129,4 +117,15 @@ unique_ptr<Image> Image::scale() const {
         for (int j = 0; j < result->getWidth(); ++j)
             result->set(i, j, (get(i*2, j*2) + get(i*2+1, j*2) + get(i*2, j*2+1) + get(i*2+1, j*2+1)) / 4);
     return result;
+}
+
+void Image::output(QString fileName) const {
+    QImage qImage = QImage(getWidth(), getHeight(), QImage::Format_RGB32);
+    for (int i = 0; i < getHeight(); ++i) {
+        for (int j = 0; j < getWidth(); ++j) {
+            int color = (int) (get(j, i) * 255.);
+            qImage.setPixel(j, i, qRgb(color, color, color));
+        }
+    }
+    qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "png");
 }
