@@ -16,12 +16,11 @@ struct Layer {
 };
 
 class Pyramid {
-    const int min_size = 64, layers_per_octave = 4;
-    const double begin_sigma = 0.5, zero_sigma = 1.6;
-    const double k = pow(2.0, 1.0 / layers_per_octave);
-    const double base_sigma = sqrt(zero_sigma*zero_sigma - begin_sigma*begin_sigma);
+    const int LAYERS_PER_OCTAVE = 4;
+    const double BEGIN_SIGMA = 0.5, ZERO_SIGMA = 1.6;
+    const double k = pow(2.0, 1.0 / LAYERS_PER_OCTAVE);
+    const double base_sigma = sqrt(ZERO_SIGMA*ZERO_SIGMA - BEGIN_SIGMA*BEGIN_SIGMA);
 public:
-    unique_ptr<double []> sigmas;
     vector<vector<Layer>> octaves;
     Pyramid(const Image &image, int octaves_count);
 };

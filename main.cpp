@@ -9,9 +9,7 @@ using namespace std;
 
 void lab1(const Image &image);
 void lab2(const Image &image);
-//void output(const Image &image, QString fileName);
-
-void lab3(Image &image);
+void lab3(const Image &image);
 
 int main()
 {
@@ -50,20 +48,10 @@ void lab2(const Image &image) {
     }
 }
 
-void lab3(Image &image) {
-    auto searcher = new InterestingPointsSearcher(image, InterestingPointsMethod::Moravek, BorderType::Mirror);
+void lab3(const Image &image) {
+    auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Moravek, BorderType::Mirror);
     searcher->output("moravek.png");
-    searcher = new InterestingPointsSearcher(image, InterestingPointsMethod::Harris, BorderType::Mirror);
+    searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Harris, BorderType::Mirror);
+    searcher->adaptiveNonMaximumSuppression(100);
     searcher->output("harris.png");
 }
-
-//void output(const Image &image, QString fileName) {
-//    QImage qImage = QImage(image.getWidth(), image.getHeight(), QImage::Format_RGB32);
-//    for (int i = 0; i < image.getHeight(); ++i) {
-//        for (int j = 0; j < image.getWidth(); ++j) {
-//            int color = (int) (image.get(j, i) * 255.);
-//            qImage.setPixel(j, i, qRgb(color, color, color));
-//        }
-//    }
-//    qImage.save(pathPrefix + fileName, "png");
-//}

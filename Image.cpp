@@ -21,11 +21,11 @@ Image::Image(Image &&image) : width(image.getWidth()), height(image.getHeight())
     image.height = 0;
 }
 
-Image &Image::operator=(Image &&image) {
-    if (this != &image) {
-        width = image.getWidth();
-        height = image.getHeight();
-        data = move(image.data);
+Image &Image::operator=(Image &&other) {
+    if (this != &other) {
+        width = other.getWidth();
+        height = other.getHeight();
+        data = move(other.data);
     }
     return *this;
 }
