@@ -4,6 +4,9 @@
 
 #include "Image.h"
 
+Image::Image() : width(0), height(0), data(nullptr) {
+}
+
 Image::Image(const int width, const int height) : width(width), height(height) {
     data = make_unique<double []>((size_t) (width * height));
 }
@@ -14,9 +17,22 @@ Image::Image(const Image &image) : width(image.getWidth()), height(image.getHeig
         data[i] = image.data[i];
 }
 
-Image::Image(const Image &&image) : width(image.getWidth()), height(image.getHeight()) {
-    data = move(image.data);
-    image.data = nullptr;
+Image::Image(Image &&image) : width(image.getWidth()), height(image.getHeight()), data(move(image.data)) {
+    image.width = 0;
+    image.height = 0;
+}
+
+Image &Image::operator=(Image &&image) {
+    if (this != &image) {
+        width = image.getWidth();
+        height = image.getHeight();
+        data = move(image.data);
+    }
+    return *this;
+}
+
+Image::operator bool() const noexcept {
+    return data && width && height;
 }
 
 double Image::get(const int x, const int y) const {

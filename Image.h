@@ -16,14 +16,17 @@ enum class NormingType { Dummy, Border, Mirror, Cylinder };
 
 class Image {
 private:
-    const int width, height;
+    int width, height;
     unique_ptr<double[]> data;
     double _convolutionCell(int x, int y, const Kernel &kernel, NormingType normingType) const;
     int _convolutionIndex(int index, int size, NormingType normingType) const;
 public:
+    Image();
     Image(const int width, const int height);
     Image(const Image &image);
-    Image(const Image &&image);
+    Image(Image &&image);
+    Image& operator=(Image&& other);
+    operator bool () const noexcept;
     double get(const int x, const int y) const;
     double get(const int x, const int y, const int begin_sigma, int sigma) const;
     void set(const int x, const int y, const double value);

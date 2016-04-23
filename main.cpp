@@ -8,6 +8,8 @@ using namespace std;
 
 QString pathPrefix = "C:\\AltSTU\\computer-vision\\";
 
+void lab1(const Image &image);
+void lab2(const Image &image);
 void output(const Image &image, QString fileName);
 
 int main()
@@ -22,17 +24,28 @@ int main()
         }
     }
 
-//    auto sobelX = image->convolution(*KernelFactory::buildSobelX(), NormingType::Mirror);
-//    auto sobelY = image->convolution(*KernelFactory::buildSobelY(), NormingType::Mirror);
-//    image = sobelX->calculateHypotenuse(*sobelY);
-//    image = image->normalize();
-
-    Pyramid pyramid = Pyramid(*image);
-    for (int i = 0; i < pyramid.layers.size(); ++i) {
-        qDebug() << "layer: " << i << " sigma: " << pyramid.sigmas[i];
-        output(pyramid.layers[i], QString::number(i) + QString("_layer.png"));
-    }
+    lab1(*image);
+    lab2(*image);
     return 0;
+}
+
+void lab1(const Image &image) {
+    auto sobelX = image.convolution(*KernelFactory::buildSobelX(), NormingType::Mirror);
+    auto sobelY = image.convolution(*KernelFactory::buildSobelY(), NormingType::Mirror);
+    auto result = sobelX->calculateHypotenuse(*sobelY);
+    result = result->normalize();
+    output(*result, "lab1.png");
+}
+
+void lab2(const Image &image) {
+    Pyramid pyramid = Pyramid(image, 5);
+    for (int i = 0; i < pyramid.octaves.size(); ++i) {
+        for (int j = 0; j < pyramid.octaves[i].size(); ++j) {
+            qDebug() << "octave: " << i << "layer: " << j << " global_sigma: "
+                     << pyramid.octaves[i][j].global_sigma << " local_sigma: " << pyramid.octaves[i][j].local_sigma;
+            output(pyramid.octaves[i][j].image, QString::number(i) + "_" + QString::number(j) + QString(".png"));
+        }
+    }
 }
 
 void output(const Image &image, QString fileName) {
