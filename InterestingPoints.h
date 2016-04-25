@@ -17,8 +17,8 @@ struct InterestingPoint {
 
 class InterestingPointsSearcher {
 private:
-    const int WINDOW_SHIFT = 2, EXTRACT_SHIFT = 2, POINT_SHIFT = 2;
-    const double MORAVEK_THRESHOLD = 0.01, HARRIS_THRESHOLD = 1e-17, FILTER_FACTOR = 0.9;
+    const int WINDOW_SHIFT = 2, WINDOW_SIGMA = 1, EXTRACT_SHIFT = 2, POINT_SHIFT = 2;
+    const double MORAVEK_THRESHOLD = 0.01, HARRIS_THRESHOLD = 0.01, FILTER_FACTOR = 0.9;
     Image image;
     vector<InterestingPoint> points;
     void extractInterestingPoints(Image &contrast, double threshold, BorderType borderType);
@@ -28,6 +28,7 @@ public:
     void harris(BorderType borderType);
     void adaptiveNonMaximumSuppression(const int countPoints);
     void output(QString fileName) const;
+    const vector<InterestingPoint> & getPoints() const;
 };
 
 

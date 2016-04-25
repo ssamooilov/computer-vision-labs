@@ -20,6 +20,7 @@ public:
     static unique_ptr<Kernel> buildSobelY();
     static unique_ptr<Kernel> buildGaussX(double sigma);
     static unique_ptr<Kernel> buildGaussY(double sigma);
+    static unique_ptr<Kernel> buildGauss(double sigma);
 };
 
 

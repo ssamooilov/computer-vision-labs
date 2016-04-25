@@ -45,11 +45,21 @@ void InterestingPointsSearcher::harris(BorderType borderType) {
     auto contrast = Image(image.getWidth(), image.getHeight());
     auto sobelX = image.convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
     auto sobelY = image.convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
+    auto kernel = KernelFactory::buildGauss(WINDOW_SIGMA);
+    int size = kernel->width / 2;
     for (int y = 0; y < image.getHeight(); ++y) {
         for (int x = 0; x < image.getWidth(); ++x) {
-            double a = sobelX->get(x, y) * sobelX->get(x, y);
-            double b = sobelX->get(x, y) * sobelY->get(x, y);
-            double c = sobelY->get(x, y) * sobelY->get(x, y);
+            double a = 0, b = 0, c = 0;
+            for (int v = 0; v < kernel->height; ++v) {
+                for (int u = 0; u < kernel->width; ++u) {
+                    a += kernel->data[u*kernel->height + v]
+                         * sobelX->get(x+u-size, y+v-size, borderType) * sobelX->get(x+u-size, y+v-size, borderType);
+                    b += kernel->data[u*kernel->height + v]
+                         * sobelX->get(x+u-size, y+v-size, borderType) * sobelY->get(x+u-size, y+v-size, borderType);
+                    c += kernel->data[u*kernel->height + v]
+                         * sobelY->get(x+u-size, y+v-size, borderType) * sobelY->get(x+u-size, y+v-size, borderType);
+                }
+            }
             double d = sqrt((a-c) * (a-c) + 4*b*b);
             double lambda1 = (a + c - d) / 2;
             double lambda2 = (a + c + d) / 2;
@@ -101,14 +111,20 @@ void InterestingPointsSearcher::output(QString fileName) const {
 
 void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoints) {
     for (int r = 0; r < image.getWidth() + image.getHeight() && points.size() > countPoints; ++r) {
-        for (auto i = points.begin(); i != points.end(); ++i) {
-            for (auto j = i + 1; j != points.end(); ++j) {
-                if (sqrt(((*i).x - (*j).x) * ((*i).x - (*j).x) + ((*i).y - (*j).y) * ((*i).y - (*j).y)) <= r
-                    && FILTER_FACTOR * (*i).weight < (*j).weight) {
-                    points.erase(i);
+        for (int i = 0; i < points.size(); ++i) {
+            for (int j = i+1; j < points.size(); ++j) {
+                if (sqrt((points[i].x - points[j].x) * (points[i].x - points[j].x)
+                         + (points[i].y - points[j].y) * (points[i].y - points[j].y)) <= r
+                    && FILTER_FACTOR * points[i].weight < points[j].weight) {
+                    points.erase(points.begin() + i);
+                    i--;
                     break;
                 }
             }
         }
     }
+}
+
+const vector<InterestingPoint> &InterestingPointsSearcher::getPoints() const {
+    return points;
 }
