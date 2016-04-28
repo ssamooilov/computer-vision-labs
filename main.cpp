@@ -67,23 +67,55 @@ void lab3() {
 }
 
 void lab4() {
-    vector<Descriptor> first_descriptors, second_descriptors;
+    vector<Descriptor> firstDescs, secondDescs;
 
     auto first = input("first.jpg");
     auto sobelX = first->convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
     auto sobelY = first->convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
     auto searcher = make_unique<InterestingPointsSearcher>(*first, InterestingPointsMethod::Harris, BorderType::Mirror);
-    searcher->adaptiveNonMaximumSuppression(50);
+    searcher->adaptiveNonMaximumSuppression(100);
     for (auto &point : searcher->getPoints())
-        first_descriptors.emplace_back(Descriptor(*sobelX, *sobelY, point, BorderType::Mirror));
+        firstDescs.emplace_back(Descriptor(*sobelX, *sobelY, point, BorderType::Mirror));
 
     auto second = input("second.jpg");
     sobelX = second->convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
     sobelY = second->convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
     searcher = make_unique<InterestingPointsSearcher>(*second, InterestingPointsMethod::Harris, BorderType::Mirror);
-    searcher->adaptiveNonMaximumSuppression(50);
+    searcher->adaptiveNonMaximumSuppression(100);
     for (auto &point : searcher->getPoints())
-        second_descriptors.emplace_back(Descriptor(*sobelX, *sobelY, point, BorderType::Mirror));
+        secondDescs.emplace_back(Descriptor(*sobelX, *sobelY, point, BorderType::Mirror));
 
+    QImage qImage = QImage(first->getWidth() + second->getWidth(),
+                           max(first->getHeight(), second->getHeight()),
+                           QImage::Format_RGB32);
+    for (int y = 0; y < first->getHeight(); ++y) {
+        for (int x = 0; x < first->getWidth(); ++x) {
+            int color = (int) (first->get(x, y) * 255.);
+            qImage.setPixel(x, y, qRgb(color, color, color));
+        }
+    }
+    for (int y = 0; y < second->getHeight(); ++y) {
+        for (int x = 0; x < second->getWidth(); ++x) {
+            int color = (int) (second->get(x, y) * 255.);
+            qImage.setPixel(x + first->getWidth(), y, qRgb(color, color, color));
+        }
+    }
 
+    QPainter painter(&qImage);
+    for (auto firstDesc : firstDescs) {
+        painter.setPen(QColor(abs(rand()) % 256, abs(rand()) % 256, abs(rand()) % 256));
+        double minDistance = 1;
+        unique_ptr<Descriptor> bestDesc = nullptr;
+        for (auto secondDesc : secondDescs) {
+            double distance = firstDesc.calculateDistanse(secondDesc);
+            if (minDistance > distance) {
+                minDistance = distance;
+                bestDesc = make_unique<Descriptor>(secondDesc);
+            }
+        }
+        qDebug() << "distance: " << minDistance;
+        if (minDistance < 0.15)
+            painter.drawLine(firstDesc.getX(), firstDesc.getY(), bestDesc->getX() + first->getWidth(), bestDesc->getY());
+    }
+    qImage.save("C:\\AltSTU\\computer-vision\\lab4.png", "png");
 }

@@ -5,7 +5,8 @@
 #include "Descriptor.h"
 
 
-Descriptor::Descriptor(const Image &sobelX, const Image &sobelY, const InterestingPoint &point, BorderType borderType) {
+Descriptor::Descriptor(const Image &sobelX, const Image &sobelY, const InterestingPoint &point, BorderType borderType) :
+        x(point.x), y(point.y) {
     data.fill(0); // надо?
     auto kernel = KernelFactory::buildGaussX(WINDOW_SIGMA);
     int dk = kernel->width / 2 + 1;
@@ -35,4 +36,19 @@ void Descriptor::normalize() {
 
 const array<double, 32> &Descriptor::getData() const {
     return data;
+}
+
+double Descriptor::calculateDistanse(const Descriptor &other) {
+    double result = 0;
+    for (int i = 0; i < data.size(); ++i)
+        result += (data[i] - other.data[i]) * (data[i] - other.data[i]);
+    return sqrt(result);
+}
+
+int Descriptor::getX() const {
+    return x;
+}
+
+int Descriptor::getY() const {
+    return y;
 }
