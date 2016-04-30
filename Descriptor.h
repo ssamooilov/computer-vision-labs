@@ -11,17 +11,19 @@
 
 class Descriptor {
 private:
-    static const int WINDOW_SHIFT = 4, WINDOW_SIGMA = 2, ANGLES_COUNT = 8;
+    static const int HISTOGRAMS_COUNT = 4, ANGLES_COUNT = 8, HISTOGRAM_SIZE = 4;
     double NORMALIZE_THRESHOLD = 0.2;
     int x, y;
-    array<double, ANGLES_COUNT * 4> data;
+    array<double, ANGLES_COUNT * HISTOGRAMS_COUNT * HISTOGRAMS_COUNT> data;
     void normalize();
 public:
     Descriptor(const Image &sobelX, const Image &sobelY, const InterestingPoint &point, BorderType borderType);
-    double calculateDistanse(const Descriptor & other);
+    double calculateDistance(const Descriptor &other);
     int getX() const;
     int getY() const;
-    const array<double, 32> & getData() const;
+    const array<double, ANGLES_COUNT * HISTOGRAMS_COUNT * HISTOGRAMS_COUNT> & getData() const {
+        return data;
+    };
 };
 
 

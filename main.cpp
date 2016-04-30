@@ -73,7 +73,7 @@ void lab4() {
     auto sobelX = first->convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
     auto sobelY = first->convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
     auto searcher = make_unique<InterestingPointsSearcher>(*first, InterestingPointsMethod::Harris, BorderType::Mirror);
-    searcher->adaptiveNonMaximumSuppression(100);
+    searcher->adaptiveNonMaximumSuppression(500);
     for (auto &point : searcher->getPoints())
         firstDescs.emplace_back(Descriptor(*sobelX, *sobelY, point, BorderType::Mirror));
 
@@ -81,7 +81,7 @@ void lab4() {
     sobelX = second->convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
     sobelY = second->convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
     searcher = make_unique<InterestingPointsSearcher>(*second, InterestingPointsMethod::Harris, BorderType::Mirror);
-    searcher->adaptiveNonMaximumSuppression(100);
+    searcher->adaptiveNonMaximumSuppression(500);
     for (auto &point : searcher->getPoints())
         secondDescs.emplace_back(Descriptor(*sobelX, *sobelY, point, BorderType::Mirror));
 
@@ -101,21 +101,41 @@ void lab4() {
         }
     }
 
+    auto distances = make_unique<double []>(firstDescs.size() * secondDescs.size());
+    for (int i = 0; i < firstDescs.size(); ++i) {
+        for (int j = 0; j < secondDescs.size(); ++j) {
+            distances[i * secondDescs.size() + j] = firstDescs[i].calculateDistance(secondDescs[j]);
+        }
+    }
+
     QPainter painter(&qImage);
-    for (auto firstDesc : firstDescs) {
-        painter.setPen(QColor(abs(rand()) % 256, abs(rand()) % 256, abs(rand()) % 256));
-        double minDistance = 1;
-        unique_ptr<Descriptor> bestDesc = nullptr;
-        for (auto secondDesc : secondDescs) {
-            double distance = firstDesc.calculateDistanse(secondDesc);
-            if (minDistance > distance) {
-                minDistance = distance;
-                bestDesc = make_unique<Descriptor>(secondDesc);
+    for (int i = 0; i < firstDescs.size(); ++i) {
+        double firstBest, secondBest;
+        if (distances[i * secondDescs.size()] < distances[i * secondDescs.size() + 1]) {
+            firstBest = distances[i * secondDescs.size()];
+            secondBest = distances[i * secondDescs.size() + 1];
+        } else {
+            firstBest = distances[i * secondDescs.size() + 1];
+            secondBest = distances[i * secondDescs.size()];
+        }
+        for (int j = 2; j < secondDescs.size(); ++j) {
+            if (distances[i * secondDescs.size() + secondBest] > distances[i * secondDescs.size() + j]) {
+                if (distances[i * secondDescs.size() + firstBest] > distances[i * secondDescs.size() + j]) {
+                    secondBest = firstBest;
+                    firstBest = j;
+                } else {
+                    secondBest = j;
+                }
             }
         }
-        qDebug() << "distance: " << minDistance;
-        if (minDistance < 0.15)
-            painter.drawLine(firstDesc.getX(), firstDesc.getY(), bestDesc->getX() + first->getWidth(), bestDesc->getY());
+        if (abs(distances[i * secondDescs.size() + firstBest] - distances[i * secondDescs.size() + secondBest]) > 0.2) {
+            painter.setPen(QColor(abs(rand()) % 256, abs(rand()) % 256, abs(rand()) % 256));
+            painter.drawLine(firstDescs[i].getX(),
+                             firstDescs[i].getY(),
+                             secondDescs[firstBest].getX() + first->getWidth(),
+                             secondDescs[firstBest].getY());
+        }
     }
+
     qImage.save("C:\\AltSTU\\computer-vision\\lab4.png", "png");
 }

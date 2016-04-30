@@ -4,19 +4,25 @@
 
 #include "Descriptor.h"
 
+double gauss(int x, int y) {
+    const double sigma = 2;
+    return exp(-(x*x + y*y)/(2*sigma*sigma)) / sqrt(2 * M_PI * sigma * sigma);
+}
 
 Descriptor::Descriptor(const Image &sobelX, const Image &sobelY, const InterestingPoint &point, BorderType borderType) :
         x(point.x), y(point.y) {
     data.fill(0); // надо?
-    auto kernel = KernelFactory::buildGaussX(WINDOW_SIGMA);
-    int dk = kernel->width / 2 + 1;
-    for (int y = -WINDOW_SHIFT; y < WINDOW_SHIFT; ++y) {
-        for (int x = -WINDOW_SHIFT; x < WINDOW_SHIFT; ++x) {
-            double dx = sobelX.get(point.x + x, point.y + y, borderType);
-            double dy = sobelY.get(point.x + x, point.y + y, borderType);
-            int histogramNumber = 2 * (y < 0) + (x < 0);
+    int size = HISTOGRAMS_COUNT * HISTOGRAM_SIZE;
+    for (int y = 0; y < size; ++y) {
+        for (int x = 0; x < size; ++x) {
+            double dx = sobelX.get(point.x + x - size/2, point.y + y - size/2, borderType);
+            double dy = sobelY.get(point.x + x - size/2, point.y + y - size/2, borderType);
+            int histogramNumber = x / HISTOGRAM_SIZE * HISTOGRAMS_COUNT + y / HISTOGRAM_SIZE;
             double angleNumber = (atan2(dy, dx) / M_PI + 1) * (ANGLES_COUNT / 2);
-            double value = sqrt(dx*dx + dy*dy) * kernel->data[dk + abs(x) + abs(y)];
+            double weight = gauss(x - size/2, y - size/2);
+            double value = sqrt(dx*dx + dy*dy) * weight * (angleNumber - (int)angleNumber);
+            data[histogramNumber * ANGLES_COUNT + angleNumber] += value;
+            value = sqrt(dx*dx + dy*dy) * weight * ((int)angleNumber - angleNumber + 1);
             data[histogramNumber * ANGLES_COUNT + angleNumber] += value;
         }
     }
@@ -29,16 +35,13 @@ Descriptor::Descriptor(const Image &sobelX, const Image &sobelY, const Interesti
 void Descriptor::normalize() {
     double sum = 0;
     for (auto value : data)
-        sum += value;
+        sum += value * value;
+    sum = sqrt(sum);
     for (int i = 0; i < data.size(); ++i)
         data[i] = data[i] / sum;
 }
 
-const array<double, 32> &Descriptor::getData() const {
-    return data;
-}
-
-double Descriptor::calculateDistanse(const Descriptor &other) {
+double Descriptor::calculateDistance(const Descriptor &other) {
     double result = 0;
     for (int i = 0; i < data.size(); ++i)
         result += (data[i] - other.data[i]) * (data[i] - other.data[i]);
