@@ -12,7 +12,7 @@
 class Descriptor {
 private:
     static const int HISTOGRAMS_COUNT = 4, ANGLES_COUNT = 8, HISTOGRAM_SIZE = 4;
-    double NORMALIZE_THRESHOLD = 0.2;
+    const double NORMALIZE_THRESHOLD = 0.2;
     int x, y;
     array<double, ANGLES_COUNT * HISTOGRAMS_COUNT * HISTOGRAMS_COUNT> data;
     void normalize();

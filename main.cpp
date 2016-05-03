@@ -112,11 +112,11 @@ void lab4() {
     for (int i = 0; i < firstDescs.size(); ++i) {
         double firstBest, secondBest;
         if (distances[i * secondDescs.size()] < distances[i * secondDescs.size() + 1]) {
-            firstBest = distances[i * secondDescs.size()];
-            secondBest = distances[i * secondDescs.size() + 1];
+            firstBest = 0;
+            secondBest = 1;
         } else {
-            firstBest = distances[i * secondDescs.size() + 1];
-            secondBest = distances[i * secondDescs.size()];
+            firstBest = 1;
+            secondBest = 0;
         }
         for (int j = 2; j < secondDescs.size(); ++j) {
             if (distances[i * secondDescs.size() + secondBest] > distances[i * secondDescs.size() + j]) {
