@@ -11,19 +11,19 @@ double gauss(int x, int y) {
 
 Descriptor::Descriptor(const Image &sobelX, const Image &sobelY, const InterestingPoint &point, BorderType borderType) :
         x(point.x), y(point.y) {
-    data.fill(0); // надо?
+    data.fill(0);
     int size = HISTOGRAMS_COUNT * HISTOGRAM_SIZE;
     for (int y = 0; y < size; ++y) {
         for (int x = 0; x < size; ++x) {
             double dx = sobelX.get(point.x + x - size/2, point.y + y - size/2, borderType);
             double dy = sobelY.get(point.x + x - size/2, point.y + y - size/2, borderType);
             int histogramNumber = x / HISTOGRAM_SIZE * HISTOGRAMS_COUNT + y / HISTOGRAM_SIZE;
-            double angleNumber = (atan2(dy, dx) / M_PI + 1) * (ANGLES_COUNT / 2);
-            double weight = gauss(x - size/2, y - size/2);
-            double value = sqrt(dx*dx + dy*dy) * weight * (angleNumber - (int)angleNumber);
+            double angleNumber = (atan2(dy, dx) / M_PI + 1) * ANGLES_COUNT / 2;
+            double weight = sqrt(dx*dx + dy*dy) * gauss(x - size/2, y - size/2);
+            double value = weight * ((int)angleNumber - angleNumber + 1);
             data[histogramNumber * ANGLES_COUNT + angleNumber] += value;
-            value = sqrt(dx*dx + dy*dy) * weight * ((int)angleNumber - angleNumber + 1);
-            data[histogramNumber * ANGLES_COUNT + angleNumber] += value;
+            value = weight * (angleNumber - (int)angleNumber);
+            data[(int)(histogramNumber * ANGLES_COUNT + angleNumber + 1) % ANGLES_COUNT] += value;
         }
     }
     normalize();

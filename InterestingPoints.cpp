@@ -115,9 +115,9 @@ void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoi
             for (int j = i+1; j < points.size(); ++j) {
                 if (sqrt((points[i].x - points[j].x) * (points[i].x - points[j].x)
                          + (points[i].y - points[j].y) * (points[i].y - points[j].y)) <= r
-                    && FILTER_FACTOR * points[i].weight < points[j].weight) {
-                    points.erase(points.begin() + i);
-                    i--;
+                    && FILTER_FACTOR * points[i].weight > points[j].weight) {
+                    points.erase(points.begin() + j);
+                    j--;
                     break;
                 }
             }
