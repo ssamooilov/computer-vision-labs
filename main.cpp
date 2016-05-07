@@ -67,7 +67,7 @@ void lab3() {
 }
 
 void lab4() {
-    auto first = input("first.jpg"), second = input("second.jpg");
+    auto first = input("second.jpg"), second = input("second30.jpg");
     QImage qImage = QImage(first->getWidth() + second->getWidth(),
                            max(first->getHeight(), second->getHeight()),
                            QImage::Format_RGB32);

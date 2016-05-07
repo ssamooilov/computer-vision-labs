@@ -10,6 +10,7 @@
 
 static double MATCH_THRESHOLD = 0.2, NORMALIZE_THRESHOLD = 0.2;
 static const int HISTOGRAM_SIZE = 4, HISTOGRAMS_COUNT = 4, ANGLES_COUNT = 8;
+static const int BIG_HISTOGRAMS_COUNT = 6, BIG_ANGLES_COUNT = 36;
 static const int COUNT_POINTS = 500;
 
 struct Desc {
@@ -23,7 +24,7 @@ private:
     BorderType borderType;
     vector<Desc> descs;
     unique_ptr<double[]> calculateData(const Image &sobelX, const Image &sobelY,
-                                       const InterestingPoint &point,
+                                       const InterestingPoint &point, double rotateAngle,
                                        int histogramsCount, int histogramSize, int anglesCount);
     void normalize(Desc &desc);
     double gauss(int x, int y);
@@ -33,6 +34,9 @@ public:
     const vector<Desc> &getDescs() const {
         return descs;
     }
+
+    Desc buildDesc(const unique_ptr<Image> &sobelX, const unique_ptr<Image> &sobelY, const InterestingPoint &point,
+                   const unique_ptr<double[], default_delete<double[]>> &anglesData, int indexOfMax);
 };
 
 
