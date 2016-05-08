@@ -8,9 +8,9 @@
 #include "Image.h"
 #include "InterestingPoints.h"
 
-static double MATCH_THRESHOLD = 0.2, NORMALIZE_THRESHOLD = 0.2;
+static double MATCH_THRESHOLD = 0.15, NORMALIZE_THRESHOLD = 0.2;
 static const int HISTOGRAM_SIZE = 4, HISTOGRAMS_COUNT = 4, ANGLES_COUNT = 8;
-static const int BIG_HISTOGRAMS_COUNT = 6, BIG_ANGLES_COUNT = 36;
+static const int BIG_HISTOGRAM_SIZE = 16, BIG_HISTOGRAMS_COUNT = 1, BIG_ANGLES_COUNT = 36;
 static const int COUNT_POINTS = 500;
 
 struct Desc {

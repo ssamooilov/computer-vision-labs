@@ -16,7 +16,7 @@ DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : imag
     searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
     int anglesDataSize = BIG_HISTOGRAMS_COUNT * BIG_HISTOGRAMS_COUNT * BIG_ANGLES_COUNT;
     for (auto &point : searcher->getPoints()) {
-        auto anglesData = calculateData(*sobelX, *sobelY, point, 0, BIG_HISTOGRAMS_COUNT, HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
+        auto anglesData = calculateData(*sobelX, *sobelY, point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
 
         int firstBest, secondBest;
         if (anglesData[0] > anglesData[1]) {
@@ -56,7 +56,7 @@ Desc DescriptorsKit::buildDesc(const unique_ptr<Image> &sobelX, const unique_ptr
     desc.data = calculateData(*sobelX, *sobelY, point, angle, HISTOGRAMS_COUNT, HISTOGRAM_SIZE, ANGLES_COUNT);
     normalize(desc);
     for (int i = 0; i < desc.size; ++i)
-                desc.data[i] = min(NORMALIZE_THRESHOLD, desc.data[i]);
+        desc.data[i] = min(NORMALIZE_THRESHOLD, desc.data[i]);
     normalize(desc);
     return desc;
 }
@@ -68,20 +68,22 @@ unique_ptr<double[]> DescriptorsKit::calculateData(const Image &sobelX, const Im
     int size = histogramsCount * histogramSize;
     double angleCos = cos(rotateAngle);
     double angleSin = sin(rotateAngle);
-    for (int y = 0; y < size; ++y) {
-        for (int x = 0; x < size; ++x) {
-            int rotatedX = (int)((x - size/2) * angleCos - (y - size/2) * angleSin);
-            int rotatedY = (int)((x - size/2) * angleSin + (y - size/2) * angleCos);
-            double dx = sobelX.get(point.x + rotatedX, point.y + rotatedY, borderType);
-            double dy = sobelY.get(point.x + rotatedX, point.y + rotatedY, borderType);
-            int histogramNumber = x / histogramSize * histogramsCount + y / histogramSize;
+    for (int y = 0; y < 2*size; ++y) {
+        for (int x = 0; x < 2*size; ++x) {
+            int rotatedX = (int)((x - size) * angleCos + (y - size) * angleSin) + size/2;
+            int rotatedY = (int)(-(x - size) * angleSin + (y - size) * angleCos) + size/2;
+            if (rotatedX < 0 || rotatedY < 0 || rotatedX >= size || rotatedY >= size)
+                continue;
+            double dx = sobelX.get(point.x + x - size, point.y + y - size, borderType);
+            double dy = sobelY.get(point.x + x - size, point.y + y - size, borderType);
+            int histogramNumber = rotatedX / histogramSize * histogramsCount + rotatedY / histogramSize;
 
-            double angle = atan2(dy, dx) + M_PI - rotateAngle - 0.001;
+            double angle = atan2(dy, dx) + M_PI - rotateAngle;
             if (angle < 0) angle += 2 * M_PI;
             if (angle > 2 * M_PI) angle -= 2 * M_PI;
             double angleNumber = angle / M_PI / 2 * anglesCount;
-            Q_ASSERT((int)angleNumber >= 0 && (int)angleNumber < anglesCount);
-            double weight = sqrt(dx*dx + dy*dy) * gauss(x - size/2, y - size/2);
+            angleNumber = max(0.0, min(anglesCount - 0.001, angleNumber));
+            double weight = sqrt(dx*dx + dy*dy) * gauss(x - size, y - size);
             double value = weight * ((int)angleNumber - angleNumber + 1);
             data[histogramNumber * anglesCount + (int)angleNumber] += value;
             value = weight * (angleNumber - (int)angleNumber);
