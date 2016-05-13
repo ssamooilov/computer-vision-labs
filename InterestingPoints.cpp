@@ -106,7 +106,7 @@ void InterestingPointsSearcher::output(QString fileName) const {
         painter.drawEllipse(point.x, point.y, r, r);
     }
 
-    qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "png");
+    qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "jpg");
 }
 
 void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoints) {

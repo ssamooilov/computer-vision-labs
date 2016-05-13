@@ -129,13 +129,13 @@ unique_ptr<Image> Image::scale() const {
 
 void Image::output(QString fileName) const {
     QImage qImage = QImage(getWidth(), getHeight(), QImage::Format_RGB32);
-    for (int i = 0; i < getHeight(); ++i) {
-        for (int j = 0; j < getWidth(); ++j) {
-            int color = (int) (get(j, i) * 255.);
-            qImage.setPixel(j, i, qRgb(color, color, color));
+    for (int y = 0; y < getHeight(); ++y) {
+        for (int x = 0; x < getWidth(); ++x) {
+            int color = (int) (get(x, y) * 255.);
+            qImage.setPixel(x, y, qRgb(color, color, color));
         }
     }
-    qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "png");
+    qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "jpg");
 }
 
 unique_ptr<Image> Image::calculateSubstitution(const Image &image) const {
@@ -145,4 +145,3 @@ unique_ptr<Image> Image::calculateSubstitution(const Image &image) const {
     }
     return result;
 }
-

@@ -17,9 +17,9 @@ void lab4();
 int main()
 {
 //    lab1();
-//    lab2();
+    lab2();
 //    lab3();
-    lab4();
+//    lab4();
     return 0;
 }
 
@@ -42,17 +42,18 @@ void lab1() {
     auto sobelY = image->convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
     auto result = sobelX->calculateHypotenuse(*sobelY);
     result = result->normalize();
-    result->output("lab1.png");
+    result->output("lab1.jpg");
 }
 
 void lab2() {
     auto image = input("avatar.jpg");
     auto pyramid = Pyramid(*image, 5);
-    for (int i = 0; i < pyramid.octaves.size(); ++i) {
-        for (int j = 0; j < pyramid.octaves[i].size(); ++j) {
+    pyramid.calculateDiffs();
+    for (int i = 0; i < pyramid.diffs.size(); ++i) {
+        for (int j = 0; j < pyramid.diffs[i].size(); ++j) {
             qDebug() << "octave: " << i << "layer: " << j << " global_sigma: "
-                     << pyramid.octaves[i][j].global_sigma << " local_sigma: " << pyramid.octaves[i][j].local_sigma;
-            pyramid.octaves[i][j].image.output(QString::number(i) + "_" + QString::number(j) + QString(".png"));
+                     << pyramid.diffs[i][j].global_sigma << " local_sigma: " << pyramid.diffs[i][j].local_sigma;
+            pyramid.diffs[i][j].image.normalize()->output(QString::number(i) + "_" + QString::number(j) + QString(".jpg"));
         }
     }
 }
@@ -60,13 +61,13 @@ void lab2() {
 void lab3() {
     auto image = input("circles.jpg");
     auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Moravek, BorderType::Mirror);
-    searcher->output("moravek.png");
+    searcher->output("moravek.jpg");
     searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Harris, BorderType::Border);
     auto pyramid = Pyramid(*image, 5);
     pyramid.calculateDiffs();
     searcher->extractBlobs(pyramid, BorderType::Border);
     searcher->adaptiveNonMaximumSuppression(500);
-    searcher->output("harris.png");
+    searcher->output("harris.jpg");
 }
 
 void lab4() {
@@ -94,5 +95,5 @@ void lab4() {
         painter.drawLine(match[0], match[1], match[2] + first->getWidth(), match[3]);
     }
 
-    qImage.save("C:\\AltSTU\\computer-vision\\lab4.png", "png");
+    qImage.save("C:\\AltSTU\\computer-vision\\lab4.jpg", "jpg");
 }
