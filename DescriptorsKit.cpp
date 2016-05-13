@@ -10,13 +10,16 @@ double DescriptorsKit::gauss(int x, int y) {
 }
 
 DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : image(image), borderType(borderType) {
-    auto sobelX = image.convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
-    auto sobelY = image.convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
     auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Harris, BorderType::Mirror);
+
+    auto pyramid = Pyramid(image, 5);
+    pyramid.calculateDiffs();
+    searcher->extractBlobs(pyramid, BorderType::Border);
+
     searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
     int anglesDataSize = BIG_HISTOGRAMS_COUNT * BIG_HISTOGRAMS_COUNT * BIG_ANGLES_COUNT;
     for (auto &point : searcher->getPoints()) {
-        auto anglesData = calculateData(*sobelX, *sobelY, point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
+        auto anglesData = calculateData(pyramid, point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
 
         int firstBest, secondBest;
         if (anglesData[0] > anglesData[1]) {
@@ -33,13 +36,13 @@ DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : imag
                     firstBest = i;
                 } else secondBest = i;
 
-        descs.emplace_back(move(buildDesc(sobelX, sobelY, point, anglesData, firstBest)));
+        descs.emplace_back(move(buildDesc(pyramid, point, anglesData, firstBest)));
         if (anglesData[firstBest] * 0.8 < anglesData[secondBest])
-            descs.emplace_back(move(buildDesc(sobelX, sobelY, point, anglesData, secondBest)));
+            descs.emplace_back(move(buildDesc(pyramid, point, anglesData, secondBest)));
     }
 }
 
-Desc DescriptorsKit::buildDesc(const unique_ptr<Image> &sobelX, const unique_ptr<Image> &sobelY,
+Desc DescriptorsKit::buildDesc(const Pyramid &pyramid,
                                const InterestingPoint &point, const unique_ptr<double[]> &anglesData, int indexOfMax) {
     int anglesDataSize = BIG_HISTOGRAMS_COUNT * BIG_HISTOGRAMS_COUNT * BIG_ANGLES_COUNT;
     double y1 = anglesData[(indexOfMax - 1 + anglesDataSize) % anglesDataSize];
@@ -53,7 +56,7 @@ Desc DescriptorsKit::buildDesc(const unique_ptr<Image> &sobelX, const unique_ptr
     desc.x = point.x;
     desc.y = point.y;
     desc.size = HISTOGRAMS_COUNT * HISTOGRAMS_COUNT * ANGLES_COUNT;
-    desc.data = calculateData(*sobelX, *sobelY, point, angle, HISTOGRAMS_COUNT, HISTOGRAM_SIZE, ANGLES_COUNT);
+    desc.data = calculateData(pyramid, point, angle, HISTOGRAMS_COUNT, (int)(HISTOGRAM_SIZE * point.local_sigma), ANGLES_COUNT);
     normalize(desc);
     for (int i = 0; i < desc.size; ++i)
         desc.data[i] = min(NORMALIZE_THRESHOLD, desc.data[i]);
@@ -61,7 +64,7 @@ Desc DescriptorsKit::buildDesc(const unique_ptr<Image> &sobelX, const unique_ptr
     return desc;
 }
 
-unique_ptr<double[]> DescriptorsKit::calculateData(const Image &sobelX, const Image &sobelY,
+unique_ptr<double[]> DescriptorsKit::calculateData(const Pyramid &pyramid,
                                                    const InterestingPoint &point, double rotateAngle,
                                                    int histogramsCount, int histogramSize, int anglesCount) {
     auto data = make_unique<double []>(histogramsCount * histogramsCount * anglesCount);
@@ -74,8 +77,14 @@ unique_ptr<double[]> DescriptorsKit::calculateData(const Image &sobelX, const Im
             int rotatedY = (int)(-(x - size) * angleSin + (y - size) * angleCos) + size/2;
             if (rotatedX < 0 || rotatedY < 0 || rotatedX >= size || rotatedY >= size)
                 continue;
-            double dx = sobelX.get(point.x + x - size, point.y + y - size, borderType);
-            double dy = sobelY.get(point.x + x - size, point.y + y - size, borderType);
+            int factor = 1;
+            for (int i = 0; i < point.octave; ++i) {
+                factor *= 2;
+            }
+            double dx = pyramid.octaves[point.octave][point.layer].image.convolutionCell(
+                    (point.x + x - size) / factor, (point.y + y - size) / factor, *KernelFactory::buildSobelX(), BorderType::Mirror);
+            double dy = pyramid.octaves[point.octave][point.layer].image.convolutionCell(
+                    (point.x + x - size) / factor, (point.y + y - size) / factor, *KernelFactory::buildSobelY(), BorderType::Mirror);
             int histogramNumber = rotatedX / histogramSize * histogramsCount + rotatedY / histogramSize;
 
             double angle = atan2(dy, dx) + M_PI - rotateAngle;

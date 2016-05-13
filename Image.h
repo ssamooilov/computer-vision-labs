@@ -19,7 +19,6 @@ class Image {
 private:
     int width, height;
     unique_ptr<double[]> data;
-    double _convolutionCell(int x, int y, const Kernel &kernel, BorderType borderType) const;
 public:
     Image();
     Image(const int width, const int height);
@@ -29,15 +28,18 @@ public:
     operator bool () const noexcept;
     double get(const int x, const int y) const;
     double get(const int x, const int y, const BorderType borderType) const;
-    double get(const int x, const int y, const int begin_sigma, int sigma) const;
+    double get(const int x, const int y, const int octave, const BorderType borderType) const;
+    double get(int x, int y, int dx, int dy, int octave, const BorderType borderType) const;
     void set(const int x, const int y, const double value);
     void set(const int x, const int y, const int red, const int green, const int blue);
     int getWidth() const;
     int getHeight() const;
     void output(QString fileName) const;
+    unique_ptr<Image> calculateSubstitution(const Image &image) const;
     unique_ptr<Image> calculateHypotenuse(const Image &image) const;
     unique_ptr<Image> normalize() const;
     unique_ptr<Image> convolution(const Kernel &kernel, BorderType normingType) const;
+    double convolutionCell(int x, int y, const Kernel &kernel, BorderType borderType) const;
     unique_ptr<Image> scale() const;
 };
 

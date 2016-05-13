@@ -99,13 +99,13 @@ void InterestingPointsSearcher::output(QString fileName) const {
             qImage.setPixel(j, i, qRgb(color, color, color));
         }
     }
+    QPainter painter(&qImage);
     for (auto &point : points) {
-        for (int dy = -POINT_SHIFT; dy < POINT_SHIFT; ++dy) {
-            for (int dx = -POINT_SHIFT; dx < POINT_SHIFT; ++dx) {
-                qImage.setPixel(point.x + dx, point.y + dy, qRgb(255, 0, 0));
-            }
-        }
+        painter.setPen(QColor(255, 0, 0));
+        int r = (int) round(point.global_sigma * sqrt(2));
+        painter.drawEllipse(point.x, point.y, r, r);
     }
+
     qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "png");
 }
 
@@ -127,4 +127,45 @@ void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoi
 
 const vector<InterestingPoint> &InterestingPointsSearcher::getPoints() const {
     return points;
+}
+
+void InterestingPointsSearcher::extractBlobs(Pyramid &pyramid, BorderType borderType) {
+    for (int pointIndex = 0; pointIndex < points.size(); ++pointIndex) {
+        int count = 0;
+        for (int octaveIndex = pyramid.diffs.size() - 1; octaveIndex >= 0; --octaveIndex) {
+            for (int layerIndex = 1; layerIndex < pyramid.diffs[octaveIndex].size() - 1; ++layerIndex) {
+                double centerValue = pyramid.diffs[octaveIndex][layerIndex].image.get(
+                        points[pointIndex].x, points[pointIndex].y, octaveIndex, borderType);
+                if (checkOnePoint(pyramid, borderType, pointIndex, octaveIndex, layerIndex, centerValue)) {
+                    points[pointIndex].octave = octaveIndex;
+                    points[pointIndex].layer = layerIndex;
+                    points[pointIndex].local_sigma = pyramid.diffs[octaveIndex][layerIndex].local_sigma;
+                    points[pointIndex].global_sigma = pyramid.diffs[octaveIndex][layerIndex].global_sigma;
+                    count++;
+                }
+            }
+        }
+        if (count < 1) {
+            points.erase(points.begin() + pointIndex);
+            pointIndex--;
+        }
+    }
+}
+
+bool InterestingPointsSearcher::checkOnePoint(Pyramid &pyramid, BorderType borderType, int pointIndex, int octaveIndex,
+                                              int layerIndex, double centerValue) const {
+    bool isMax = true, isMin = true;
+    for (int dz = -1; dz < 1; ++dz) {
+        for (int dy = -1; dy < 1; ++dy) {
+            for (int dx = -1; dx < 1; ++dx) {
+                if (dx == 0 && dy == 0 && dz == 0) continue;
+                double curValue = pyramid.diffs[octaveIndex][layerIndex + dz].image.get(
+                        points[pointIndex].x, points[pointIndex].y, dx, dy, octaveIndex, borderType);
+                if (curValue > centerValue) isMax = false;
+                if (curValue < centerValue) isMin = false;
+                if (!isMax && !isMin) return false;
+            }
+        }
+    }
+    return true;
 }

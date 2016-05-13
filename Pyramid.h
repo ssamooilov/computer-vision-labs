@@ -22,7 +22,9 @@ class Pyramid {
     const double base_sigma = sqrt(ZERO_SIGMA*ZERO_SIGMA - BEGIN_SIGMA*BEGIN_SIGMA);
 public:
     vector<vector<Layer>> octaves;
+    vector<vector<Layer>> diffs;
     Pyramid(const Image &image, int octaves_count);
+    void calculateDiffs();
 };
 
 

@@ -23,7 +23,7 @@ private:
     Image image;
     BorderType borderType;
     vector<Desc> descs;
-    unique_ptr<double[]> calculateData(const Image &sobelX, const Image &sobelY,
+    unique_ptr<double[]> calculateData(const Pyramid &pyramid,
                                        const InterestingPoint &point, double rotateAngle,
                                        int histogramsCount, int histogramSize, int anglesCount);
     void normalize(Desc &desc);
@@ -35,7 +35,7 @@ public:
         return descs;
     }
 
-    Desc buildDesc(const unique_ptr<Image> &sobelX, const unique_ptr<Image> &sobelY, const InterestingPoint &point,
+    Desc buildDesc(const Pyramid &pyramid, const InterestingPoint &point,
                    const unique_ptr<double[], default_delete<double[]>> &anglesData, int indexOfMax);
 };
 

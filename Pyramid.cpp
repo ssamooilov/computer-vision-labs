@@ -7,7 +7,7 @@
 
 Pyramid::Pyramid(const Image &image, int octaves_count) {
     for (int i = 0; i < octaves_count; ++i)
-        octaves.push_back(vector<Layer>());
+        octaves.emplace_back(vector<Layer>());
 
     auto first_layer_image = image.convolution(*KernelFactory::buildGaussX(base_sigma), BorderType::Mirror);
     first_layer_image = first_layer_image->convolution(*KernelFactory::buildGaussY(base_sigma), BorderType::Mirror);
@@ -41,6 +41,20 @@ Pyramid::Pyramid(const Image &image, int octaves_count) {
                 layer.image = move(*layer_image);
             }
             octaves[i].emplace_back(move(layer));
+        }
+    }
+}
+
+void Pyramid::calculateDiffs() {
+    diffs.clear();
+    for (int i = 0; i < octaves.size(); ++i) {
+        diffs.emplace_back(vector<Layer>());
+        for (int j = 0; j < octaves[i].size() - 1; ++j) {
+            auto layer = Layer();
+            layer.local_sigma = octaves[i][j].local_sigma;
+            layer.global_sigma = octaves[i][j].global_sigma;
+            layer.image = move(*octaves[i][j].image.calculateSubstitution(octaves[i][j+1].image));
+            diffs[i].emplace_back(layer);
         }
     }
 }

@@ -58,16 +58,19 @@ void lab2() {
 }
 
 void lab3() {
-    auto image = input("avatar.jpg");
+    auto image = input("circles.jpg");
     auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Moravek, BorderType::Mirror);
     searcher->output("moravek.png");
-    searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Harris, BorderType::Mirror);
-    searcher->adaptiveNonMaximumSuppression(50);
+    searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Harris, BorderType::Border);
+    auto pyramid = Pyramid(*image, 5);
+    pyramid.calculateDiffs();
+    searcher->extractBlobs(pyramid, BorderType::Border);
+    searcher->adaptiveNonMaximumSuppression(500);
     searcher->output("harris.png");
 }
 
 void lab4() {
-    auto first = input("second.jpg"), second = input("second30.jpg");
+    auto first = input("second.jpg"), second = input("second2x.jpg");
     QImage qImage = QImage(first->getWidth() + second->getWidth(),
                            max(first->getHeight(), second->getHeight()),
                            QImage::Format_RGB32);
@@ -84,7 +87,7 @@ void lab4() {
         }
     }
 
-    DescriptorsKit firstKit(*first, BorderType::Mirror), secondKit(*second, BorderType::Mirror);
+    DescriptorsKit firstKit(*first, BorderType::Border), secondKit(*second, BorderType::Border);
     QPainter painter(&qImage);
     for (auto match : firstKit.findMatches(secondKit)) {
         painter.setPen(QColor(abs(rand()) % 256, abs(rand()) % 256, abs(rand()) % 256));

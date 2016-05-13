@@ -47,11 +47,16 @@ double Image::get(const int x, const int y, const BorderType borderType) const {
     }
 }
 
-double Image::get(const int x, const int y, const int begin_sigma, int sigma) const {
-    int layer = 0;
-    while (sigma > begin_sigma)
-        sigma /= 2;
-    return data[(y / (2*layer) * width) + x / (2*layer)];;
+double Image::get(const int x, const int y, const int octave, const BorderType borderType) const {
+    return get(x, y, 0, 0, octave, borderType);
+}
+
+double Image::get(int x, int y, int dx, int dy, int octave, const BorderType borderType) const {
+    int factor = 1;
+    for (int i = 0; i < octave; ++i) {
+        factor *= 2;
+    }
+    return get(x / factor + dx, y / factor + dy, borderType);
 }
 
 void Image::set(const int x, const int y, const double value) {
@@ -94,13 +99,13 @@ unique_ptr<Image> Image::convolution(const Kernel &kernel, BorderType normingTyp
     auto result = make_unique<Image>(width, height);
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-            result->set(j, i, _convolutionCell(j, i, kernel, normingType));
+            result->set(j, i, convolutionCell(j, i, kernel, normingType));
         }
     }
     return result;
 }
 
-double Image::_convolutionCell(int x, int y, const Kernel &kernel, BorderType borderType) const {
+double Image::convolutionCell(int x, int y, const Kernel &kernel, BorderType borderType) const {
     double result = 0;
     for (int kernelY = 0; kernelY < kernel.height; ++kernelY) {
         for (int kernelX = 0; kernelX < kernel.width; ++kernelX) {
@@ -113,9 +118,12 @@ double Image::_convolutionCell(int x, int y, const Kernel &kernel, BorderType bo
 
 unique_ptr<Image> Image::scale() const {
     auto result = make_unique<Image>(width / 2, height / 2);
-    for (int i = 0; i < result->getHeight(); ++i)
-        for (int j = 0; j < result->getWidth(); ++j)
-            result->set(i, j, (get(i*2, j*2) + get(i*2+1, j*2) + get(i*2, j*2+1) + get(i*2+1, j*2+1)) / 4);
+    for (int y = 0; y < result->getHeight(); ++y)
+        for (int x = 0; x < result->getWidth(); ++x)
+            result->set(x, y, (get(x*2, y*2, BorderType::Border)
+                               + get(x*2+1, y*2, BorderType::Border)
+                               + get(x*2, y*2+1, BorderType::Border)
+                               + get(x*2+1, y*2+1, BorderType::Border)) / 4);
     return result;
 }
 
@@ -129,3 +137,12 @@ void Image::output(QString fileName) const {
     }
     qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "png");
 }
+
+unique_ptr<Image> Image::calculateSubstitution(const Image &image) const {
+    auto result = make_unique<Image>(width, height);
+    for (int i = 0; i < width * height; ++i) {
+        result->data[i] = data[i] - image.data[i];
+    }
+    return result;
+}
+
