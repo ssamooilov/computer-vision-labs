@@ -2,6 +2,7 @@
 // Created by Samoilov Sergei on 23.04.2016.
 //
 
+#include <queue>
 #include "InterestingPoints.h"
 
 
@@ -13,6 +14,9 @@ InterestingPointsSearcher::InterestingPointsSearcher(const Image &image, Interes
             break;
         case InterestingPointsMethod::Harris:
             harris(borderType);
+            break;
+        case InterestingPointsMethod::Blob:
+            blob(borderType);
             break;
     }
 }
@@ -91,7 +95,7 @@ void InterestingPointsSearcher::extractInterestingPoints(Image &contrast, double
     }
 }
 
-void InterestingPointsSearcher::output(QString fileName) const {
+void InterestingPointsSearcher::output(QString fileName, bool withScale) const {
     QImage qImage = QImage(image.getWidth(), image.getHeight(), QImage::Format_RGB32);
     for (int i = 0; i < image.getHeight(); ++i) {
         for (int j = 0; j < image.getWidth(); ++j) {
@@ -102,8 +106,10 @@ void InterestingPointsSearcher::output(QString fileName) const {
     QPainter painter(&qImage);
     for (auto &point : points) {
         painter.setPen(QColor(255, 0, 0));
-        int r = (int) round(point.global_sigma * sqrt(2));
-        painter.drawEllipse(point.x, point.y, r, r);
+        if (withScale) {
+            int r = (int) round(point.global_sigma * sqrt(2));
+            painter.drawEllipse(point.x, point.y, r, r);
+        } else painter.drawEllipse(point.x, point.y, 3, 3);
     }
 
     qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "jpg");
@@ -129,38 +135,15 @@ const vector<InterestingPoint> &InterestingPointsSearcher::getPoints() const {
     return points;
 }
 
-void InterestingPointsSearcher::extractBlobs(Pyramid &pyramid, BorderType borderType) {
-    for (int pointIndex = 0; pointIndex < points.size(); ++pointIndex) {
-        int count = 0;
-        for (int octaveIndex = pyramid.diffs.size() - 1; octaveIndex >= 0; --octaveIndex) {
-            for (int layerIndex = 1; layerIndex < pyramid.diffs[octaveIndex].size() - 1; ++layerIndex) {
-                double centerValue = pyramid.diffs[octaveIndex][layerIndex].image.get(
-                        points[pointIndex].x, points[pointIndex].y, octaveIndex, borderType);
-                if (checkOnePoint(pyramid, borderType, pointIndex, octaveIndex, layerIndex, centerValue)) {
-                    points[pointIndex].octave = octaveIndex;
-                    points[pointIndex].layer = layerIndex;
-                    points[pointIndex].local_sigma = pyramid.diffs[octaveIndex][layerIndex].local_sigma;
-                    points[pointIndex].global_sigma = pyramid.diffs[octaveIndex][layerIndex].global_sigma;
-                    count++;
-                }
-            }
-        }
-        if (count < 1) {
-            points.erase(points.begin() + pointIndex);
-            pointIndex--;
-        }
-    }
-}
-
-bool InterestingPointsSearcher::checkOnePoint(Pyramid &pyramid, BorderType borderType, int pointIndex, int octaveIndex,
-                                              int layerIndex, double centerValue) const {
+bool InterestingPointsSearcher::checkOnePoint(Pyramid &pyramid, BorderType borderType, int pointX, int pointY,
+                                              int octaveIndex, int layerIndex, double centerValue) const {
     bool isMax = true, isMin = true;
     for (int dz = -1; dz < 1; ++dz) {
         for (int dy = -1; dy < 1; ++dy) {
             for (int dx = -1; dx < 1; ++dx) {
                 if (dx == 0 && dy == 0 && dz == 0) continue;
                 double curValue = pyramid.diffs[octaveIndex][layerIndex + dz].image.get(
-                        points[pointIndex].x, points[pointIndex].y, dx, dy, octaveIndex, borderType);
+                        pointX, pointY, dx, dy, octaveIndex, borderType);
                 if (curValue > centerValue) isMax = false;
                 if (curValue < centerValue) isMin = false;
                 if (!isMax && !isMin) return false;
@@ -168,4 +151,52 @@ bool InterestingPointsSearcher::checkOnePoint(Pyramid &pyramid, BorderType borde
         }
     }
     return true;
+}
+
+void InterestingPointsSearcher::blob(BorderType borderType) {
+    pyramid = make_unique<Pyramid>(image, 7);
+    pyramid->calculateDiffs();
+    list<unique_ptr<InterestingPointsSearcher>> searchers;
+    for (int octaveIndex = 0; octaveIndex < pyramid->octaves.size(); ++octaveIndex) {
+        for (int layerIndex = 0; layerIndex < pyramid->octaves[octaveIndex].size(); ++layerIndex) {
+            qDebug() << "octaveIndex: " << octaveIndex << " layerIndex: " << layerIndex;
+            auto curSearcher = make_unique<InterestingPointsSearcher>(
+                    pyramid->octaves[octaveIndex][layerIndex].image, InterestingPointsMethod::Harris, borderType);
+            curSearcher->output(QString::number(octaveIndex) + "_" + QString::number(layerIndex) + QString(".jpg"), false);
+            if (layerIndex >= 3) {
+                for (auto point : curSearcher->points) {
+                    bool contains = true;
+                    for (auto &searcher : searchers)
+                        if (!searcher->contains(point))
+                            contains = false;
+                    if (contains) {
+                        double centerValue = pyramid->diffs[octaveIndex][layerIndex-2].image.get(
+                                point.x, point.y, octaveIndex, borderType);
+                        if (checkOnePoint(*pyramid, borderType, point.x, point.y, octaveIndex, layerIndex-2, centerValue)) {
+                            point.x *= round(pow(2, octaveIndex));
+                            point.y *= round(pow(2, octaveIndex));
+                            point.octave = octaveIndex;
+                            point.layer = layerIndex-2;
+                            point.local_sigma = pyramid->diffs[octaveIndex][layerIndex-2].local_sigma;
+                            point.global_sigma = pyramid->diffs[octaveIndex][layerIndex-2].global_sigma;
+                            points.emplace_back(point);
+                        }
+                    }
+                }
+            }
+            searchers.emplace_back(move(curSearcher));
+            if (searchers.size() > 3) searchers.pop_front();
+        }
+    }
+}
+
+bool InterestingPointsSearcher::contains(InterestingPoint &point) const {
+    for (int i = 0; i < points.size(); ++i)
+        for (int dy = -1; dy <= 1; ++dy) {
+            for (int dx = -1; dx <= 1; ++dx) {
+                if (point.x == points[i].x+dx && point.y == points[i].y+dy)
+                    return true;
+            }
+        }
+    return false;
 }

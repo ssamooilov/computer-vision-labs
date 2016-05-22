@@ -17,8 +17,8 @@ void lab4();
 int main()
 {
 //    lab1();
-    lab2();
-//    lab3();
+//    lab2();
+    lab3();
 //    lab4();
     return 0;
 }
@@ -60,14 +60,14 @@ void lab2() {
 
 void lab3() {
     auto image = input("circles.jpg");
-    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Moravek, BorderType::Mirror);
-    searcher->output("moravek.jpg");
-    searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Harris, BorderType::Border);
-    auto pyramid = Pyramid(*image, 5);
-    pyramid.calculateDiffs();
-    searcher->extractBlobs(pyramid, BorderType::Border);
+//    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Moravek, BorderType::Mirror);
+//    searcher->output("moravek.jpg");
+//    searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Harris, BorderType::Border);
+//    searcher->adaptiveNonMaximumSuppression(500);
+//    searcher->output("harris.jpg");
+    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Blob, BorderType::Border);
     searcher->adaptiveNonMaximumSuppression(500);
-    searcher->output("harris.jpg");
+    searcher->output("blob.jpg", true);
 }
 
 void lab4() {

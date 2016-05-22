@@ -10,16 +10,12 @@ double DescriptorsKit::gauss(int x, int y) {
 }
 
 DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : image(image), borderType(borderType) {
-    auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Harris, BorderType::Mirror);
-
-    auto pyramid = Pyramid(image, 5);
-    pyramid.calculateDiffs();
-    searcher->extractBlobs(pyramid, BorderType::Border);
-
+    auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Blob, BorderType::Mirror);
     searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
     int anglesDataSize = BIG_HISTOGRAMS_COUNT * BIG_HISTOGRAMS_COUNT * BIG_ANGLES_COUNT;
     for (auto &point : searcher->getPoints()) {
-        auto anglesData = calculateData(pyramid, point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
+        auto anglesData = calculateData(
+                searcher->getPyramid(), point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
 
         int firstBest, secondBest;
         if (anglesData[0] > anglesData[1]) {
@@ -36,9 +32,9 @@ DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : imag
                     firstBest = i;
                 } else secondBest = i;
 
-        descs.emplace_back(move(buildDesc(pyramid, point, anglesData, firstBest)));
+        descs.emplace_back(move(buildDesc(searcher->getPyramid(), point, anglesData, firstBest)));
         if (anglesData[firstBest] * 0.8 < anglesData[secondBest])
-            descs.emplace_back(move(buildDesc(pyramid, point, anglesData, secondBest)));
+            descs.emplace_back(move(buildDesc(searcher->getPyramid(), point, anglesData, secondBest)));
     }
 }
 
