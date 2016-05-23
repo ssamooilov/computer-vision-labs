@@ -139,16 +139,17 @@ bool InterestingPointsSearcher::checkOnePoint(Pyramid &pyramid, BorderType borde
                                               int octaveIndex, int layerIndex, double centerValue) const {
     bool isMax = true, isMin = true;
     for (int dz = -1; dz < 1; ++dz) {
-        for (int dy = -1; dy < 1; ++dy) {
-            for (int dx = -1; dx < 1; ++dx) {
-                if (dx == 0 && dy == 0 && dz == 0) continue;
+//        for (int dy = -1; dy < 1; ++dy) {
+//            for (int dx = -1; dx < 1; ++dx) {
+                if (dz == 0) continue;
+//                if (dx == 0 && dy == 0 && dz == 0) continue;
                 double curValue = pyramid.diffs[octaveIndex][layerIndex + dz].image.get(
-                        pointX, pointY, dx, dy, octaveIndex, borderType);
+                        pointX, pointY, octaveIndex, borderType);
                 if (curValue > centerValue) isMax = false;
                 if (curValue < centerValue) isMin = false;
                 if (!isMax && !isMin) return false;
-            }
-        }
+//            }
+//        }
     }
     return true;
 }
