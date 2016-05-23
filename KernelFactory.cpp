@@ -39,8 +39,13 @@ unique_ptr<Kernel> KernelFactory::buildGaussX(double sigma) {
     kernel->width = size * 2 + 1;
     kernel->height = 1;
     kernel->data = make_unique<double []>(kernel->width);
-    for (int i = -size; i <= size; ++i)
+    double sum = 0;
+    for (int i = -size; i <= size; ++i) {
         kernel->data[i+size] = exp(-i*i/(2*sigma*sigma)) / (sqrt(2 * M_PI) * sigma);
+        sum += kernel->data[i+size];
+    }
+    for (int i = 0; i < kernel->width; ++i)
+        kernel->data[i] /= sum;
     return kernel;
 }
 
@@ -50,8 +55,13 @@ unique_ptr<Kernel> KernelFactory::buildGaussY(double sigma) {
     kernel->width = 1;
     kernel->height = size * 2 + 1;
     kernel->data = make_unique<double []>(kernel->height);
-    for (int i = -size; i <= size; ++i)
+    double sum = 0;
+    for (int i = -size; i <= size; ++i) {
         kernel->data[i+size] = exp(-i*i/(2*sigma*sigma)) / sqrt(2 * M_PI * sigma * sigma);
+        sum += kernel->data[i+size];
+    }
+    for (int i = 0; i < kernel->height; ++i)
+        kernel->data[i] /= sum;
     return kernel;
 }
 
