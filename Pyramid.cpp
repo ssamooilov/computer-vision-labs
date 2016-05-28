@@ -21,22 +21,16 @@ Pyramid::Pyramid(const Image &image, int octaves_count) {
             auto layer = Layer();
             if (j == 0) {
                 if (i == 0) continue;
+                layer.image = move(*octaves[i-1][LAYERS_PER_OCTAVE].image.scale());
                 layer.global_sigma = octaves[i-1][0].global_sigma * 2;
-                auto old_sigma = octaves[i-1][LAYERS_PER_OCTAVE-1].local_sigma;
-                layer.local_sigma = old_sigma * k;
-                double delta_sigma = sqrt(layer.local_sigma*layer.local_sigma - old_sigma*old_sigma);
-                auto layer_image = octaves[i-1][LAYERS_PER_OCTAVE-1].image
-                        .convolution(*KernelFactory::buildGaussX(delta_sigma), BorderType::Mirror);
-                layer_image = layer_image->convolution(*KernelFactory::buildGaussY(delta_sigma), BorderType::Mirror);
-                layer_image = layer_image->scale();
-                layer.image = move(*layer_image);
-                layer.local_sigma /= 2;
+                layer.local_sigma = octaves[i-1][0].local_sigma;
             } else {
-                layer.global_sigma = octaves[i][j-1].global_sigma * k;
-                layer.local_sigma = octaves[i][j-1].local_sigma * k;
+                auto &prevLayer = octaves[i][j-1];
+                layer.global_sigma = prevLayer.global_sigma * k;
+                layer.local_sigma = prevLayer.local_sigma * k;
                 double delta_sigma = sqrt(
-                        layer.local_sigma*layer.local_sigma - octaves[i][j-1].local_sigma*octaves[i][j-1].local_sigma);
-                auto layer_image = octaves[i][j-1].image.convolution(*KernelFactory::buildGaussX(delta_sigma), BorderType::Mirror);
+                        layer.local_sigma*layer.local_sigma - prevLayer.local_sigma*prevLayer.local_sigma);
+                auto layer_image = prevLayer.image.convolution(*KernelFactory::buildGaussX(delta_sigma), BorderType::Mirror);
                 layer_image = layer_image->convolution(*KernelFactory::buildGaussY(delta_sigma), BorderType::Mirror);
                 layer.image = move(*layer_image);
             }

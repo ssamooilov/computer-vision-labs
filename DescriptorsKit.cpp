@@ -10,12 +10,12 @@ double DescriptorsKit::gauss(int x, int y) {
 }
 
 DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : image(image), borderType(borderType) {
-    auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Blob, BorderType::Mirror);
-    searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
+    auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Blob2, BorderType::Mirror);
+//    searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
     int anglesDataSize = BIG_HISTOGRAMS_COUNT * BIG_HISTOGRAMS_COUNT * BIG_ANGLES_COUNT;
     for (auto &point : searcher->getPoints()) {
         auto anglesData = calculateData(
-                searcher->getPyramid(), point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE, BIG_ANGLES_COUNT);
+                searcher->getPyramid(), point, 0, BIG_HISTOGRAMS_COUNT, BIG_HISTOGRAM_SIZE * point.local_sigma, BIG_ANGLES_COUNT);
 
         int firstBest, secondBest;
         if (anglesData[0] > anglesData[1]) {
@@ -32,10 +32,13 @@ DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : imag
                     firstBest = i;
                 } else secondBest = i;
 
+        point.orientation = firstBest * M_PI * 2 / 36;
+
         descs.emplace_back(move(buildDesc(searcher->getPyramid(), point, anglesData, firstBest)));
         if (anglesData[firstBest] * 0.8 < anglesData[secondBest])
             descs.emplace_back(move(buildDesc(searcher->getPyramid(), point, anglesData, secondBest)));
     }
+    searcher->output(QString::number(rand()) + "lalala.jpg", true);
 }
 
 Desc DescriptorsKit::buildDesc(const Pyramid &pyramid,
@@ -49,8 +52,8 @@ Desc DescriptorsKit::buildDesc(const Pyramid &pyramid,
 
     double angle = -b / a / anglesDataSize * M_PI;
     auto desc = Desc();
-    desc.x = point.x;
-    desc.y = point.y;
+    desc.x = point.global_x;
+    desc.y = point.global_y;
     desc.size = HISTOGRAMS_COUNT * HISTOGRAMS_COUNT * ANGLES_COUNT;
     desc.data = calculateData(pyramid, point, angle, HISTOGRAMS_COUNT, (int)(HISTOGRAM_SIZE * point.local_sigma), ANGLES_COUNT);
     normalize(desc);
@@ -73,14 +76,12 @@ unique_ptr<double[]> DescriptorsKit::calculateData(const Pyramid &pyramid,
             int rotatedY = (int)(-(x - size) * angleSin + (y - size) * angleCos) + size/2;
             if (rotatedX < 0 || rotatedY < 0 || rotatedX >= size || rotatedY >= size)
                 continue;
-            int factor = 1;
-            for (int i = 0; i < point.octave; ++i) {
-                factor *= 2;
-            }
             double dx = pyramid.octaves[point.octave][point.layer].image.convolutionCell(
-                    (point.x + x - size) / factor, (point.y + y - size) / factor, *KernelFactory::buildSobelX(), BorderType::Mirror);
+                    (int) (point.local_x + x - size), (int) (point.local_y + y - size),
+                    *KernelFactory::buildSobelX(), BorderType::Mirror);
             double dy = pyramid.octaves[point.octave][point.layer].image.convolutionCell(
-                    (point.x + x - size) / factor, (point.y + y - size) / factor, *KernelFactory::buildSobelY(), BorderType::Mirror);
+                    (int) (point.local_x + x - size), (int) (point.local_y + y - size),
+                    *KernelFactory::buildSobelY(), BorderType::Mirror);
             int histogramNumber = rotatedX / histogramSize * histogramsCount + rotatedY / histogramSize;
 
             double angle = atan2(dy, dx) + M_PI - rotateAngle;

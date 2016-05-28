@@ -18,6 +18,56 @@ InterestingPointsSearcher::InterestingPointsSearcher(const Image &image, Interes
         case InterestingPointsMethod::Blob:
             blob(borderType);
             break;
+        case InterestingPointsMethod::Blob2:
+            blob2(borderType);
+            break;
+    }
+}
+
+void InterestingPointsSearcher::blob2(BorderType borderType) {
+    vector<int> dx, dy, dz;
+    for (int i = 0; i < 3 * 3 * 3; ++i) {
+        int x = i % 3 - 1;
+        int y = i / 3 % 3 - 1;
+        int z = i / (3*3) % 3 - 1;
+        if (x != 0 || y != 0 || z != 0) {
+            dx.emplace_back(x);
+            dy.emplace_back(y);
+            dz.emplace_back(z);
+        }
+    }
+
+    pyramid = make_unique<Pyramid>(image, 5);
+    pyramid->calculateDiffs();
+    for (int octaveIndex = 0; octaveIndex < pyramid->diffs.size(); ++octaveIndex) {
+        for (int layerIndex = 1; layerIndex < pyramid->diffs[octaveIndex].size() - 1; ++layerIndex) {
+            auto harris = getHarris(pyramid->diffs[octaveIndex][layerIndex].image, borderType);
+            for (int y = 0; y < pyramid->diffs[octaveIndex][layerIndex].image.getHeight(); ++y) {
+                for (int x = 0; x < pyramid->diffs[octaveIndex][layerIndex].image.getWidth(); ++x) {
+                    bool isMax = true, isMin = true;
+                    for (int i = 0; i < 3 * 3 * 3 - 1; ++i) {
+                        if (pyramid->diffs[octaveIndex][layerIndex + dz[i]].image.get(x + dx[i], y + dy[i], borderType)
+                                > pyramid->diffs[octaveIndex][layerIndex].image.get(x, y, borderType))
+                            isMax = false;
+                        if (pyramid->diffs[octaveIndex][layerIndex + dz[i]].image.get(x + dx[i], y + dy[i], borderType)
+                                < pyramid->diffs[octaveIndex][layerIndex].image.get(x, y, borderType))
+                            isMin = false;
+                    }
+                    if ((isMax || isMin) && harris.get(x, y, borderType) > 1e-3) {
+                        auto point = InterestingPoint();
+                        point.local_x = x;
+                        point.local_y = y;
+                        point.global_x = (x + 0.5) * pow(2, octaveIndex) - 0.5;
+                        point.global_y = (y + 0.5) * pow(2, octaveIndex) - 0.5;
+                        point.local_sigma = pyramid->diffs[octaveIndex][layerIndex].local_sigma;
+                        point.global_sigma = pyramid->diffs[octaveIndex][layerIndex].global_sigma;
+                        point.octave = octaveIndex;
+                        point.layer = layerIndex;
+                        points.emplace_back(point);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -46,6 +96,11 @@ void InterestingPointsSearcher::moravek(BorderType borderType) {
 }
 
 void InterestingPointsSearcher::harris(BorderType borderType) {
+    Image contrast = getHarris(image, borderType);
+    extractInterestingPoints(contrast, HARRIS_THRESHOLD, borderType);
+}
+
+Image InterestingPointsSearcher::getHarris(const Image &image, const BorderType &borderType) const {
     auto contrast = Image(image.getWidth(), image.getHeight());
     auto sobelX = image.convolution(*KernelFactory::buildSobelX(), BorderType::Mirror);
     auto sobelY = image.convolution(*KernelFactory::buildSobelY(), BorderType::Mirror);
@@ -70,7 +125,7 @@ void InterestingPointsSearcher::harris(BorderType borderType) {
             contrast.set(x, y, min(abs(lambda1), abs(lambda2)));
         }
     }
-    extractInterestingPoints(contrast, HARRIS_THRESHOLD, borderType);
+    return contrast;
 }
 
 void InterestingPointsSearcher::extractInterestingPoints(Image &contrast, double threshold, BorderType borderType) {
@@ -87,8 +142,8 @@ void InterestingPointsSearcher::extractInterestingPoints(Image &contrast, double
             }
             if (next) continue;
             auto interestingPoint = InterestingPoint();
-            interestingPoint.x = x;
-            interestingPoint.y = y;
+            interestingPoint.global_x = x;
+            interestingPoint.global_y = y;
             interestingPoint.weight = contrast.get(x, y);
             points.emplace_back(interestingPoint);
         }
@@ -108,8 +163,12 @@ void InterestingPointsSearcher::output(QString fileName, bool withScale) const {
         painter.setPen(QColor(255, 0, 0));
         if (withScale) {
             int r = (int) round(point.global_sigma * sqrt(2));
-            painter.drawEllipse(point.x, point.y, r, r);
-        } else painter.drawEllipse(point.x, point.y, 3, 3);
+            painter.drawEllipse(point.global_x - r, point.global_y - r, r * 2, r * 2);
+            painter.drawLine(point.global_x,
+                             point.global_y,
+                             point.global_x + r * cos(point.orientation),
+                             point.global_y + r * sin(point.orientation));
+        } else painter.drawEllipse(point.global_x, point.global_y, 3, 3);
     }
 
     qImage.save("C:\\AltSTU\\computer-vision\\" + fileName, "jpg");
@@ -119,8 +178,8 @@ void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoi
     for (int r = 0; r < image.getWidth() + image.getHeight() && points.size() > countPoints; ++r) {
         for (int i = 0; i < points.size(); ++i) {
             for (int j = i+1; j < points.size(); ++j) {
-                if (sqrt((points[i].x - points[j].x) * (points[i].x - points[j].x)
-                         + (points[i].y - points[j].y) * (points[i].y - points[j].y)) <= r
+                if (sqrt((points[i].global_x - points[j].global_x) * (points[i].global_x - points[j].global_x)
+                         + (points[i].global_y - points[j].global_y) * (points[i].global_y - points[j].global_y)) <= r
                     && FILTER_FACTOR * points[i].weight > points[j].weight) {
                     points.erase(points.begin() + j);
                     j--;
@@ -131,25 +190,17 @@ void InterestingPointsSearcher::adaptiveNonMaximumSuppression(const int countPoi
     }
 }
 
-const vector<InterestingPoint> &InterestingPointsSearcher::getPoints() const {
+vector<InterestingPoint> &InterestingPointsSearcher::getPoints() {
     return points;
 }
 
 bool InterestingPointsSearcher::checkOnePoint(Pyramid &pyramid, BorderType borderType, int pointX, int pointY,
                                               int octaveIndex, int layerIndex, double centerValue) const {
-    bool isMax = true, isMin = true;
     for (int dz = -1; dz < 1; ++dz) {
-//        for (int dy = -1; dy < 1; ++dy) {
-//            for (int dx = -1; dx < 1; ++dx) {
-                if (dz == 0) continue;
-//                if (dx == 0 && dy == 0 && dz == 0) continue;
-                double curValue = pyramid.diffs[octaveIndex][layerIndex + dz].image.get(
-                        pointX, pointY, octaveIndex, borderType);
-                if (curValue > centerValue) isMax = false;
-                if (curValue < centerValue) isMin = false;
-                if (!isMax && !isMin) return false;
-//            }
-//        }
+        if (dz == 0) continue;
+        double curValue = pyramid.diffs[octaveIndex][layerIndex + dz].image.get(
+                pointX, pointY, octaveIndex, borderType);
+        if (curValue > centerValue) return false;
     }
     return true;
 }
@@ -172,10 +223,10 @@ void InterestingPointsSearcher::blob(BorderType borderType) {
                             contains = false;
                     if (contains) {
                         double centerValue = pyramid->diffs[octaveIndex][layerIndex-2].image.get(
-                                point.x, point.y, octaveIndex, borderType);
-                        if (checkOnePoint(*pyramid, borderType, point.x, point.y, octaveIndex, layerIndex-2, centerValue)) {
-                            point.x *= round(pow(2, octaveIndex));
-                            point.y *= round(pow(2, octaveIndex));
+                                point.global_x, point.global_y, octaveIndex, borderType);
+                        if (checkOnePoint(*pyramid, borderType, point.global_x, point.global_y, octaveIndex, layerIndex-2, centerValue)) {
+                            point.global_x *= round(pow(2, octaveIndex));
+                            point.global_y *= round(pow(2, octaveIndex));
                             point.octave = octaveIndex;
                             point.layer = layerIndex-2;
                             point.local_sigma = pyramid->diffs[octaveIndex][layerIndex-2].local_sigma;
@@ -195,7 +246,7 @@ bool InterestingPointsSearcher::contains(InterestingPoint &point) const {
     for (int i = 0; i < points.size(); ++i)
         for (int dy = -1; dy <= 1; ++dy) {
             for (int dx = -1; dx <= 1; ++dx) {
-                if (point.x == points[i].x+dx && point.y == points[i].y+dy)
+                if (point.global_x == points[i].global_x+dx && point.global_y == points[i].global_y+dy)
                     return true;
             }
         }

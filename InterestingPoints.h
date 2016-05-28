@@ -9,12 +9,12 @@
 #include "math.h"
 #include "Pyramid.h"
 
-enum class InterestingPointsMethod { Moravek, Harris, Blob };
+enum class InterestingPointsMethod { Moravek, Harris, Blob, Blob2
+};
 
 struct InterestingPoint {
-    int x, y, octave, layer;
-    double weight, local_sigma, global_sigma;
-
+    int global_x, global_y, octave, layer;
+    double weight, local_x, local_y, local_sigma, global_sigma, orientation;
 };
 
 class InterestingPointsSearcher {
@@ -31,10 +31,9 @@ public:
     InterestingPointsSearcher(const Image &image, InterestingPointsMethod method, BorderType borderType);
     void moravek(BorderType borderType);
     void harris(BorderType borderType);
-//    void extractBlobs(Pyramid &pyramid, BorderType borderType);
     void adaptiveNonMaximumSuppression(const int countPoints);
     void output(QString fileName, bool withScale) const;
-    const vector<InterestingPoint> & getPoints() const;
+    vector<InterestingPoint> & getPoints();
     void blob(BorderType borderType);
     bool contains(InterestingPoint & point) const;
 
@@ -42,6 +41,9 @@ public:
         return *pyramid;
     }
 
+    void blob2(BorderType borderType);
+
+    Image getHarris(const Image &image, const BorderType &borderType) const;
 };
 
 

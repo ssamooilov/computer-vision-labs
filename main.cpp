@@ -18,8 +18,8 @@ int main()
 {
 //    lab1();
 //    lab2();
-    lab3();
-//    lab4();
+//    lab3();
+    lab4();
     return 0;
 }
 
@@ -59,14 +59,15 @@ void lab2() {
 }
 
 void lab3() {
-    auto image = input("circles.jpg");
+    auto image = input("second2x.jpg");
 //    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Moravek, BorderType::Mirror);
 //    searcher->output("moravek.jpg");
 //    searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Harris, BorderType::Border);
 //    searcher->adaptiveNonMaximumSuppression(500);
 //    searcher->output("harris.jpg");
-    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Blob, BorderType::Border);
-    searcher->adaptiveNonMaximumSuppression(500);
+//    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Blob, BorderType::Border);
+//    searcher->adaptiveNonMaximumSuppression(500);
+    auto searcher = make_unique<InterestingPointsSearcher>(*image, InterestingPointsMethod::Blob2, BorderType::Border);
     searcher->output("blob.jpg", true);
 }
 
