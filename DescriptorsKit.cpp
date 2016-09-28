@@ -11,7 +11,7 @@ double DescriptorsKit::gauss(int x, int y) {
 
 DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : image(image), borderType(borderType) {
     auto searcher = make_unique<InterestingPointsSearcher>(image, InterestingPointsMethod::Blob2, BorderType::Mirror);
-//    searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
+    searcher->adaptiveNonMaximumSuppression(COUNT_POINTS);
     int anglesDataSize = BIG_HISTOGRAMS_COUNT * BIG_HISTOGRAMS_COUNT * BIG_ANGLES_COUNT;
     for (auto &point : searcher->getPoints()) {
         auto anglesData = calculateData(
@@ -32,7 +32,7 @@ DescriptorsKit::DescriptorsKit(const Image &image, BorderType borderType) : imag
                     firstBest = i;
                 } else secondBest = i;
 
-        point.orientation = firstBest * M_PI * 2 / 36;
+        point.orientation = firstBest * M_PI * 2 / BIG_ANGLES_COUNT;
 
         descs.emplace_back(move(buildDesc(searcher->getPyramid(), point, anglesData, firstBest)));
         if (anglesData[firstBest] * 0.8 < anglesData[secondBest])
@@ -72,8 +72,8 @@ unique_ptr<double[]> DescriptorsKit::calculateData(const Pyramid &pyramid,
     double angleSin = sin(rotateAngle);
     for (int y = 0; y < 2*size; ++y) {
         for (int x = 0; x < 2*size; ++x) {
-            int rotatedX = (int)((x - size) * angleCos + (y - size) * angleSin) + size/2;
-            int rotatedY = (int)(-(x - size) * angleSin + (y - size) * angleCos) + size/2;
+            int rotatedX = (int)(((x - size) * angleCos + (y - size) * angleSin) + size) / 2;
+            int rotatedY = (int)((-(x - size) * angleSin + (y - size) * angleCos) + size) / 2;
             if (rotatedX < 0 || rotatedY < 0 || rotatedX >= size || rotatedY >= size)
                 continue;
             double dx = pyramid.octaves[point.octave][point.layer].image.convolutionCell(
