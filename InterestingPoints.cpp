@@ -52,9 +52,10 @@ void InterestingPointsSearcher::blob2(BorderType borderType) {
                         if (pyramid->diffs[octaveIndex][layerIndex + dz[i]].image.get(x + dx[i], y + dy[i], borderType)
                                 < pyramid->diffs[octaveIndex][layerIndex].image.get(x, y, borderType))
                             isMin = false;
-                    }
-                    if ((isMax || isMin) && harris.get(x, y, borderType) > 1e-3) {
+                    }double weight = harris.get(x, y, borderType);
+                    if ((isMax || isMin) && weight > 1e-3) {
                         auto point = InterestingPoint();
+                        point.weight = weight;
                         point.local_x = x;
                         point.local_y = y;
                         point.global_x = (x + 0.5) * pow(2, octaveIndex) - 0.5;
