@@ -5,6 +5,7 @@
 #include "Pyramid.h"
 #include "InterestingPoints.h"
 #include "DescriptorsKit.h"
+#include "Transform.h"
 
 using namespace std;
 
@@ -13,13 +14,15 @@ void lab1();
 void lab2();
 void lab3();
 void lab4();
+void lab8();
 
 int main()
 {
 //    lab1();
 //    lab2();
 //    lab3();
-    lab4();
+//    lab4();
+    lab8();
     return 0;
 }
 
@@ -97,4 +100,32 @@ void lab4() {
     }
 
     qImage.save("C:\\AltSTU\\computer-vision\\lab4.jpg", "jpg");
+}
+
+void lab8() {
+    auto first = input("fourth_right.jpg"), second = input("fourth_lef135.jpg");
+    int width = max(first->getWidth(), second->getWidth());
+    int height = max(first->getHeight(), second->getHeight());
+
+    DescriptorsKit firstKit(*first, BorderType::Border), secondKit(*second, BorderType::Border);
+    auto trans = Transform().ransac(firstKit.findMatches(secondKit));
+    QImage qImage = QImage(width * 3, height * 3, QImage::Format_RGB32);
+
+    for (int y = 0; y < second->getHeight(); ++y) {
+        for (int x = 0; x < second->getWidth(); ++x) {
+            int color = (int) (second->get(x, y) * 255.);
+            qImage.setPixel(x + width, y + height, qRgb(color, color, color));
+        }
+    }
+
+    for (int y = 0; y < first->getHeight(); ++y) {
+        for (int x = 0; x < first->getWidth(); ++x) {
+            int color = (int) (first->get(x, y) * 255.);
+            double k = x * trans[6] + y * trans[7] + trans[8];
+            int transX = int(round((x * trans[0] + y * trans[1] + trans[2]) / k));
+            int transY = int(round((x * trans[3] + y * trans[4] + trans[5]) / k));
+            qImage.setPixel(transX + width, transY + height, qRgb(color, color, color));
+        }
+    }
+    qImage.save("C:\\AltSTU\\computer-vision\\lab8.jpg", "jpg");
 }
